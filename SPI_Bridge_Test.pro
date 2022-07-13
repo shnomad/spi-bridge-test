@@ -15,20 +15,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        common.cpp \
-        devices/dac/dac80004/dac80004.cpp \
         main.cpp\
         gpiocontrol.cpp \
+        common.cpp \
         devices/spi_bridge/ftdi/ft4222.cpp \
-        devices/display/sh1106/sh1106.cpp
+        devices/display/sh1106/sh1106.cpp \
+#        devices/dac/dac80004/dac80004.cpp \
+        devices/dac/dac8562/dac8562.cpp
 
 
 HEADERS += \
         common.h \
-        devices/dac/dac80004/dac80004.h \
         gpiocontrol.h \
         devices/spi_bridge/ftdi/ft4222.h \
-        devices/display/sh1106/sh1106.h
+        devices/display/sh1106/sh1106.h \
+#        devices/dac/dac80004/dac80004.h \
+        devices/dac/dac8562/dac8562.h
 
 INCLUDEPATH +=/opt/qt5rpi3/sysroot/usr/include \
             +=/opt/qt5rpi3/sysroot/usr/local/include
@@ -36,5 +38,5 @@ LIBS += -L/opt/qt5rpi3/sysroot/usr/local/lib -lft4222
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /home/pi/$${TARGET}/bin
+else: unix:!android: target.path = /home/user/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target

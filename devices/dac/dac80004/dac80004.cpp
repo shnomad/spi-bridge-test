@@ -4,21 +4,23 @@
 
 dac80004::dac80004(QObject *parent) : GpioControl(parent)
 {
+#if 1
    /*LDAC*/
-    GpioControl::exportGPIO(2);
-    GpioControl::setDirection(2, GpioControl::SET_DIR::SET_OUT);
-    GpioControl::setValue(2, GpioControl::SET_VAL::SET_HIGH);
+    GpioControl::exportGPIO(86);
+    GpioControl::setDirection(86, GpioControl::SET_DIR::SET_OUT);
+    GpioControl::setValue(86, GpioControl::SET_VAL::SET_HIGH);
 
    /*CLEAR*/
-    GpioControl::exportGPIO(3);
-    GpioControl::setDirection(3, GpioControl::SET_DIR::SET_OUT);
-    GpioControl::setValue(3, GpioControl::SET_VAL::SET_HIGH);
+    GpioControl::exportGPIO(84);
+    GpioControl::setDirection(84, GpioControl::SET_DIR::SET_OUT);
+    GpioControl::setValue(84, GpioControl::SET_VAL::SET_HIGH);
 
    /*dac8004 H/W clear*/    
-    GpioControl::setValue(3, GpioControl::SET_VAL::SET_LOW);
+    GpioControl::setValue(84, GpioControl::SET_VAL::SET_LOW);
     delay_mSec(100);
 
-    GpioControl::setValue(3, GpioControl::SET_VAL::SET_HIGH);
+    GpioControl::setValue(84, GpioControl::SET_VAL::SET_HIGH);
+#endif
 
     m_spi_control = new ft4222;
 }
@@ -34,13 +36,23 @@ void dac80004::WriteToBuffer(quint16 data, quint8 channel, bool update)
    //cmd[4] = data;
    //quint8 temp0, temp1, temp2;
 
-    cmd[0] = (data & 0xF) << 4;
-    cmd[1] = (data & 0x0FF0) >> 4;
-    cmd[2] = (data & 0xF000) >> 12;
+#if 0
 
-    cmd[2] = 0xF << 4;
+    cmd[0] |= (data & 0xF) << 4;
+    cmd[1] |= (data & 0x0FF0) >> 4;
+    cmd[2] |= (data & 0xF000) >> 12;
+    cmd[2] |= 0xF << 4;
+    cmd[3] = 0x2;
+#else
 
-//  cmd[3] = 0x2;
+    cmd[3] |= (data & 0xF) << 4;
+    cmd[2] |= (data & 0x0FF0) >> 4;
+    cmd[2] |= (data & 0xF000) >> 12;
+    cmd[1] |= 0xF << 4;
+    cmd[0] = 0x2;
+
+#endif
+
 //  cmd[3] = 0x1 <<4;
 
 #else
@@ -66,11 +78,11 @@ void dac80004::WriteToBuffer(quint16 data, quint8 channel, bool update)
     cmd.insert(28,0x1);
 #endif
 
-    m_spi_control->SPI_Single_Write((quint8 *)cmd, sizeof(cmd));
+    _spi_control->SPI_Single_Write((quint8 *)cmd, sizeof(cmd));
 
-    GpioControl::setValue(2, GpioControl::SET_VAL::SET_LOW);
+//    GpioControl::setValue(86, GpioControl::SET_VAL::SET_LOW);
 
-    GpioControl::setValue(2, GpioControl::SET_VAL::SET_HIGH);
+//    GpioControl::setValue(86, GpioControl::SET_VAL::SET_HIGH);
 
 }
 
@@ -90,8 +102,31 @@ void dac80004::PowerUpDown(bool UpDown)
 }
 
 void dac80004::SoftClear()
-{
+{    
+   quint8 cmd[4]= {0x0,};
 
+   cmd[3] |= SW_CLEAR;
+
+   m_spi_control->SPI_Single_Write((quint8 *)cmd, sizeof(cmd));
+}
+
+void dac80004::SoftReset()
+{
+   quint8 cmd[4]= {0x0,};
+
+   cmd[3] |= SW_RESET;
+
+   m_spi_control->SPI_Single_Write((quint8 *)cmd, sizeof(cmd));
+}
+
+void dac80004::updateDac()
+{
+    quint8 cmd[4]= {0x0,};
+
+    cmd[2] |= 0xF << 4;
+    cmd[3] |= 0x1;
+
+    m_spi_control->SPI_Single_Write((quint8 *)cmd, sizeof(cmd));
 }
 
 void dac80004::ReadStatus()

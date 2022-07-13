@@ -3,7 +3,7 @@
 
 ft4222::ft4222(QObject *parent) : QObject(parent)
 {
- //  ListFtUsbDEvices();
+//     ListFtUsbDEvices();
 
 //    if(g_FT4222DevList.empty())
 //    {
@@ -113,7 +113,10 @@ bool ft4222::Get_Clock(FT4222_ClockRate *clk)
 
 bool ft4222::SPI_Master_Init(CS_NUM cs_num)
 {
-    ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_64, CLK_IDLE_LOW , CLK_TRAILING, cs_num);
+    //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_HIGH , CLK_TRAILING, cs_num);    //high, high, mode 0
+    ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_LOW , CLK_TRAILING, cs_num);   //low,  high, mode 1
+    //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_HIGH , CLK_LEADING, cs_num);   //high, low,  mode 2
+    //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_LOW , CLK_LEADING, cs_num);    //low,  low,  mode 3
 
     if(FT4222_OK != ft4222Status)
     {
@@ -126,9 +129,9 @@ bool ft4222::SPI_Master_Init(CS_NUM cs_num)
 
 bool ft4222::SPI_Single_Write(quint8 *cmd, quint16 cmd_size)
 {
-     quint16 sizeTransferred;
+    quint16 sizeTransferred;
 
-     ft4222Status = FT4222_SPIMaster_SingleWrite(ftHandle, cmd, cmd_size, &sizeTransferred, true);
+    ft4222Status = FT4222_SPIMaster_SingleWrite(ftHandle, cmd, cmd_size, &sizeTransferred, true);
 
     if (FT4222_OK != ft4222Status)
     {
@@ -141,7 +144,6 @@ bool ft4222::SPI_Single_Write(quint8 *cmd, quint16 cmd_size)
 
 bool ft4222::SPI_Single_Read(quint8 *read_buf, quint16 sizeofread)
 {
-
     quint16 sizeTransferred;
 
     ft4222Status = FT4222_SPIMaster_SingleRead(ftHandle, read_buf, sizeofread, &sizeTransferred, true);
@@ -153,7 +155,6 @@ bool ft4222::SPI_Single_Read(quint8 *read_buf, quint16 sizeofread)
     }
 
     return true;
-
 }
 
 ft4222::~ft4222()

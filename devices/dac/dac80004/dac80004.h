@@ -6,6 +6,9 @@
 
 class ft4222;
 
+#define SW_RESET 0x7
+#define SW_CLEAR 0xb
+
 class dac80004 : public GpioControl
 {
     Q_OBJECT
@@ -33,7 +36,9 @@ public:
     void WriteToBuffer(quint16, quint8, bool);
     void PowerUpDown(bool);
     void SoftClear();
+    void SoftReset();
     void ReadStatus();
+    void updateDac();
 
     ft4222 *m_spi_control;
 signals:
