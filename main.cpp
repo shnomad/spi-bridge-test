@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 
     dac8562 m_dac;
 
-    m_dac.writeVoltage(200.0f);
+    m_dac.writeVoltage(500.0f);
 
     return a.exec();
 }

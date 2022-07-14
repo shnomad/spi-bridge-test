@@ -27,7 +27,8 @@
 #define CMD_INTERNAL_REF_EN       0x38  // 命令：Enable Internal Reference & reset DACs to gain = 2
 #define DATA_INTERNAL_REF_EN      0x0001  // 数据：Enable Internal Reference & reset DACs to gain = 2
 
-class ft4222;
+//class ft4222;
+class pl23d3;
 
 class dac8562 : public QObject
 {
@@ -48,8 +49,9 @@ signals:
 public slots:
 
 private:
-    ft4222 *m_spi_control;
-//    float _vref;
+//  ft4222 *m_spi_control;
+    pl23d3 *m_spi_control;
+//  float _vref;
 };
 
 #endif // DAC8562_H

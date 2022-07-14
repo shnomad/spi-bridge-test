@@ -1,10 +1,12 @@
 
 #include "dac8562.h"
-#include "../../spi_bridge/ftdi/ft4222.h"
+//#include "../../spi_bridge/ftdi/ft4222.h"
+#include "../../spi_bridge/prolific/pl23d3.h"
 
 dac8562::dac8562(QObject *parent) : QObject(parent)
 {
-    m_spi_control = new ft4222;
+//  m_spi_control = new ft4222;
+    m_spi_control = new pl23d3;
 
     initialize();
 }
@@ -26,7 +28,7 @@ void dac8562::DAC_WR_REG(quint8 cmd_byte, quint16 data_byte )
     cmd_data[1] = (data_byte  >> 8) & 0xff;
     cmd_data[2] =  data_byte & 0xff;
 
-    m_spi_control->SPI_Single_Write((quint8 *)cmd_data, sizeof(cmd_data));
+//  m_spi_control->SPI_Single_Write((quint8 *)cmd_data, sizeof(cmd_data));
 }
 
 void dac8562::outPutValue(quint8 cmd_byte, quint16 input)

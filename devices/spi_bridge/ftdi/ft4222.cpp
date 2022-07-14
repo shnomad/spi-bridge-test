@@ -113,8 +113,8 @@ bool ft4222::Get_Clock(FT4222_ClockRate *clk)
 
 bool ft4222::SPI_Master_Init(CS_NUM cs_num)
 {
-    //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_HIGH , CLK_TRAILING, cs_num);    //high, high, mode 0
-    ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_LOW , CLK_TRAILING, cs_num);   //low,  high, mode 1
+    //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_HIGH , CLK_TRAILING, cs_num);  //high, high, mode 0
+      ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_4, CLK_IDLE_LOW , CLK_TRAILING, cs_num);     //low,  high, mode 1   //DAC8562
     //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_HIGH , CLK_LEADING, cs_num);   //high, low,  mode 2
     //ft4222Status = FT4222_SPIMaster_Init(ftHandle, SPI_IO_SINGLE, CLK_DIV_512, CLK_IDLE_LOW , CLK_LEADING, cs_num);    //low,  low,  mode 3
 
