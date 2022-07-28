@@ -28,7 +28,6 @@
 #define DATA_INTERNAL_REF_EN      0x0001  // 数据：Enable Internal Reference & reset DACs to gain = 2
 
 //class ft4222;
-class pl23d3;
 
 class dac8562 : public QObject
 {
@@ -36,22 +35,24 @@ class dac8562 : public QObject
 public:
     explicit dac8562(QObject *parent = nullptr);
     ~dac8562();    
-    void initialize();
-    void DAC_WR_REG(quint8 cmd_byte, quint16 data_byte );
-    void outPutValue(quint8 cmd_byte, quint16 input);
-    void writeVoltage(float input);
-    void writeA(float input);
-    void writeB(float input);
+    void initialize();           
+    quint8 *DAC_WR_REG(quint8 cmd_byte, quint16 data_byte);
+    quint8 *outPutValue(quint8 cmd_byte, quint16 input);
+    quint8 * writeA(float input);
+    quint8 * writeB(float input);
+    quint8 * writeALL(float input);
     quint16 Voltage_Convert(float voltage);
+
+ // void writeVoltage(float input);
+ // void DAC_WR_REG(quint8 cmd_byte, quint16 data_byte, quint8 *cmd_buf);
 
 signals:
 
 public slots:
 
-private:
-//  ft4222 *m_spi_control;
-    pl23d3 *m_spi_control;
-//  float _vref;
+private:    
+
+    quint8 cmd_buffer[3];
 };
 
 #endif // DAC8562_H

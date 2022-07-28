@@ -1,0 +1,141 @@
+#include "pl23d3.h"
+
+pl23d3::pl23d3(QObject *parent) : QObject(parent)
+{
+    qint32 result = hid_init();
+
+    if(result <0)
+        exit(0);
+}
+
+hid_device * pl23d3::SPI_Open(quint16 VID, quint16 PID)
+{
+    hid_device *handle = hid_open(VID, PID, nullptr);
+
+    if(!handle)
+        return nullptr;
+
+    return handle;
+}
+
+hid_device * pl23d3::SPI_Open(const char *path)
+{
+    hid_device *handle = hid_open_path(path);
+
+    if(!handle)
+        return nullptr;
+
+    return handle;
+}
+
+void pl23d3::SPI_Close(hid_device *handle)
+{
+    hid_close(handle);
+}
+
+void pl23d3::SPI_Bridge_Info(hid_device *handle)
+{
+    wchar_t wstr[255];
+
+    hid_get_manufacturer_string(handle, wstr, 255);
+
+    qDebug()<< QString::fromWCharArray(wstr);
+
+    hid_get_product_string(handle, wstr, 255);
+
+    qDebug()<< QString::fromWCharArray(wstr);
+
+    hid_get_serial_number_string(handle, wstr, 255);
+
+    qDebug()<< QString::fromWCharArray(wstr);
+
+    hid_get_indexed_string(handle, 1, wstr, 255);
+
+    qDebug()<< QString::fromWCharArray(wstr);
+}
+
+qint32 pl23d3::SPI_Master_Init(hid_device *handle)
+{
+  /** MODE = 1                                      **/
+
+    qint32 result=0;
+
+    feature_report_buf[0] = 0x81;
+    feature_report_buf[1] = 0x0f;
+
+    result = hid_get_feature_report(handle, feature_report_buf, 0x2);
+
+    memset(feature_report_buf,0x00,sizeof(feature_report_buf));
+
+    feature_report_buf[0] = 0x80;
+    feature_report_buf[1] = 0x0f;
+    feature_report_buf[2] = 0x10;
+
+    result = hid_send_feature_report(handle, feature_report_buf, 0x3);
+
+    memset(feature_report_buf,0x00,sizeof(feature_report_buf));
+
+    feature_report_buf[0] = 0x80;
+    feature_report_buf[1] = 0x10;
+    feature_report_buf[2] = 0x1d;       /* SPI Frequency(KHz) = 24000/(29+1) = 800 KHz */
+//  feature_report_buf[2] = 0x13;       /* SPI Frequency(KHz) = 24000/(19+1) = 1,200 KHz */
+
+    result = hid_send_feature_report(handle, feature_report_buf, 0x3);
+
+    memset(feature_report_buf,0x00,sizeof(feature_report_buf));
+
+    return result;
+}
+
+qint32 pl23d3::SPI_Single_Write(hid_device *handle, quint8 *cmd_buf)
+{
+    /** SPI Write with CS0, DAC Controll **/
+
+    qint32 result;
+
+    spi_write_buf[0] = 0xb2;
+    spi_write_buf[1] = 0x03;
+    spi_write_buf[2] = 0x03;
+    spi_write_buf[3] = cmd_buf[0];
+    spi_write_buf[4] = cmd_buf[1];
+    spi_write_buf[5] = cmd_buf[2];
+
+    result = hid_write (handle, spi_write_buf, sizeof(spi_write_buf));
+    memset(spi_write_buf,0x00,sizeof(spi_write_buf));
+
+    return result;
+}
+
+qint32 pl23d3::SPI_Single_Read(hid_device *handle, quint8 *read_buf)
+{
+    /** SPI Read with CS1, ADC Data capture **/
+    qint32 result;
+
+    hid_set_nonblocking(handle, 1);
+
+    memset(spi_write_buf,0x00,sizeof(spi_write_buf));
+
+    spi_write_buf[0] = 0xb3;
+    spi_write_buf[1] = 0x13;
+    spi_write_buf[2] = 0x02;
+    spi_write_buf[3] = 0x00;
+
+    memset(read_adc,0x00,sizeof(read_adc));
+
+    result = hid_write (handle, spi_write_buf, 0x6);
+    delay_mSec(100);
+    result = hid_read(handle, read_adc, 0x3);
+
+//  read_buf[0] = read_adc[1];
+//  read_buf[1] = read_adc[2];
+    memcpy((void *)read_buf, (void *)(read_adc + 1), 0x2);
+
+    memset(spi_write_buf,0x00,sizeof(spi_write_buf));
+
+    return result;
+}
+
+pl23d3::~pl23d3()
+{
+
+}

@@ -9,10 +9,6 @@ class ft4222 : public QObject
 {
     Q_OBJECT
 public:
-    explicit ft4222(QObject *parent = nullptr);
-
-    ~ft4222();
-
     enum CS_NUM
     {
         SS_0 = 0x1,
@@ -21,24 +17,35 @@ public:
         SS_3 = 0x8
     };
 
-    void ListFtUsbDEvices();
-    bool Open(quint8);
-    bool OpenEx(PVOID , DWORD);
-    bool Set_Clock(FT4222_ClockRate);
-    bool Get_Clock(FT4222_ClockRate*);
-    bool SPI_Master_Init(CS_NUM);
-    bool SPI_Single_Write(quint8 *, quint16);
-    bool SPI_Single_Read(quint8 *, quint16);
+    enum DEV_NUM
+    {
+        dev_0 = 0x0,
+        dev_1,
+        dev_2,
+        dev_3
+    };
+
+    explicit ft4222(QObject *parent = nullptr);
+    ~ft4222();
+
+    quint8 CreatDEviceInfoList();
+    void GetDeviceInfoDetail(quint8, FT_DEVICE_LIST_INFO_NODE *);
+    FT_STATUS Open(quint8, FT_HANDLE*);
+    FT_STATUS OpenEx(PVOID , DWORD, FT_HANDLE*);
+    FT4222_STATUS Set_Clock(FT_HANDLE, FT4222_ClockRate);
+    FT4222_STATUS Get_Clock(FT_HANDLE, FT4222_ClockRate*);
+    FT4222_STATUS SPI_Master_Init(FT_HANDLE, quint8);
+    FT4222_STATUS SPI_Single_Write(FT_HANDLE, quint8 *, quint16);
+    FT4222_STATUS SPI_Single_Read(FT_HANDLE, quint8 *, quint16);
 
 //signals:
 
 //public slots:
 
 //  private:
-
     FT_STATUS ftStatus;
     FT4222_STATUS ft4222Status;
-    FT_HANDLE ftHandle = nullptr;
+//  FT_HANDLE ftHandle;
     FT4222_ClockRate clk;
 
     FT_DEVICE_LIST_INFO_NODE *devInfo;

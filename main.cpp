@@ -1,15 +1,15 @@
 #include <QCoreApplication>
-//#include "devices/display/sh1106/sh1106.h"
-//#include "devices/dac/dac80004/dac80004.h"
-#include "devices/dac/dac8562/dac8562.h"
+//#include "controller.h"
+#include "codingchannel.h"
+
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    dac8562 m_dac;
+//  Controller m_controller;
 
-    m_dac.writeVoltage(500.0f);
+    CodingChannel m_cgms_coding;
 
     return a.exec();
 }
