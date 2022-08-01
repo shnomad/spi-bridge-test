@@ -16,8 +16,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \   
         main.cpp\
-#       controller.cpp \
-        gpiocontrol.cpp \
+#        controller.cpp \
+#       gpiocontrol.cpp \
         common.cpp \
         codingchannel.cpp \
 #       devices/spi_bridge/ftdi/ft4222.cpp \
@@ -29,7 +29,7 @@ SOURCES += \
 
 HEADERS += \           
 #       controller.h \
-        gpiocontrol.h \
+#       gpiocontrol.h \
         common.h \
         codingchannel.h \
 #       devices/spi_bridge/ftdi/ft4222.h \

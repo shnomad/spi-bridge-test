@@ -7,7 +7,8 @@ CodingChannel::CodingChannel(QObject *parent) : QObject(parent)
     m_dac = new dac8562;
     m_adc = new ads8866;
 
-    QString hidpath = "/dev/pl23d3-01";
+//    QString hidpath = "/dev/pl23d3-01";
+      QString hidpath = "/dev/hidraw0";
 
     hid_fd = m_usb_spi->SPI_Open(hidpath.toStdString().c_str());
 
@@ -17,6 +18,8 @@ CodingChannel::CodingChannel(QObject *parent) : QObject(parent)
         exit(0);
     }
 
+    m_usb_spi->SPI_Master_Init(hid_fd);
+
     dac_init();
 
     qint32 result = dac_out(CodingChannel::DAC_CH::CH_A, 400.0f);
@@ -25,23 +28,26 @@ CodingChannel::CodingChannel(QObject *parent) : QObject(parent)
     if(result< 0)
         exit(0);
 
+    /* Socket notifier for SPI read interrupt*/
     m_notify_hid = new QSocketNotifier(hid_fd, QSocketNotifier::Read, this);
 
     connect(m_notify_hid, SIGNAL(activated(int)), this, SLOT(adc_read_ready()));
 
     m_notify_hid->setEnabled(true);
 
+    /* ADC data start timer, start immediately */
     m_timer_adc.setSingleShot(true);
     m_timer_adc.setInterval(1);
 
     QObject::connect(&m_timer_adc, SIGNAL(timeout()), this, SLOT(adc_read()));
 
+    /* ADC data transmittion timer, after ADC capure & calculate complete it'll start */
     m_timer_adc_transmitt.setSingleShot(true);
-    m_timer_adc_transmitt.setInterval(5000);
+    m_timer_adc_transmitt.setInterval(5000);    
 
     QObject::connect(&m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
 
-    /*Later, it'll remove from main function*/
+    /*Later, it'll controlled by Host/server */
     adc_read_start();
 }
 
@@ -143,7 +149,6 @@ void CodingChannel::adc_read_ready()
           adc_average.remove(0, 10);
 
        /*  3. Calculate the average value of 20 ADC data */
-
           for(quint8 adc_cal_count=0; adc_cal_count<20; adc_cal_count++)
           {
               adc_average_2nd += adc_average[adc_cal_count];
@@ -158,6 +163,10 @@ void CodingChannel::adc_read_ready()
           read_adc_count = 0;
 
           m_timer_adc_transmitt.start();
+
+       /* 4. raw data & average data vector clear */
+          adc_rawdata.clear();
+          adc_average.clear();
    }
 }
 
