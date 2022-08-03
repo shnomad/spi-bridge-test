@@ -1,14 +1,18 @@
 #include "codingchannel.h"
 #include <bits/stdc++.h>
 
-CodingChannel::CodingChannel(QObject *parent) : QObject(parent)
-{
+CodingChannel::CodingChannel(quint8 port, QObject *parent) : QObject(parent)
+{    
+    QList<QString> hid_port_name = {"usb-spi-1","usb-spi-2","usb-spi-3","usb-spi-4","usb-spi-5", \
+                                    "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
+                                    "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
+
     m_usb_spi = new pl23d3;
     m_dac = new dac8562;
     m_adc = new ads8866;
 
-//    QString hidpath = "/dev/pl23d3-01";
-      QString hidpath = "/dev/hidraw0";
+    QString hidpath = "/dev/hidraw0";
+//  QString hidpath = hid_port_name.at(port);
 
     hid_fd = m_usb_spi->SPI_Open(hidpath.toStdString().c_str());
 
@@ -22,8 +26,8 @@ CodingChannel::CodingChannel(QObject *parent) : QObject(parent)
 
     dac_init();
 
-    qint32 result = dac_out(CodingChannel::DAC_CH::CH_A, 400.0f);
-           result = dac_out(CodingChannel::DAC_CH::CH_B, 400.0f);
+    qint32 result = dac_out(CodingChannel::DAC_CH::CH_A, 300.0f);
+           result = dac_out(CodingChannel::DAC_CH::CH_B, 300.0f);
 
     if(result< 0)
         exit(0);
@@ -48,7 +52,7 @@ CodingChannel::CodingChannel(QObject *parent) : QObject(parent)
     QObject::connect(&m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
 
     /*Later, it'll controlled by Host/server */
-    adc_read_start();
+ //  adc_read_start();
 }
 
 qint32 CodingChannel::dac_init()
@@ -173,6 +177,7 @@ void CodingChannel::adc_read_ready()
 void CodingChannel::adc_data_transmitt()
 {
     Log();
+    emit sig_transmitt_adc("adc_data_final");
     adc_read_start();
 }
 

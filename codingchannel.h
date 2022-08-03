@@ -25,11 +25,15 @@ public:
        CH_ALL
     };
 
-    explicit CodingChannel(QObject *parent = nullptr);
+    explicit CodingChannel(quint8, QObject *parent = nullptr);
         ~CodingChannel();
         qint32 dac_init();
         void adc_read_start();
 signals:
+
+Q_SIGNALS:
+    void sig_transmitt_adc(QString);
+//  void sig_transmitt_adc(quint16);
 
 public slots:
     qint32 dac_out(DAC_CH, float);

@@ -13,7 +13,6 @@ void delay_mSec(int);
 //#define Log() qDebug()<<"["<< __PRETTY_FUNCTION__ << __LINE__ << "]"
 //#define Log() qDebug(logDebug()) <<"["<< __PRETTY_FUNCTION__ << __LINE__ << "]"
 
-
 #ifdef __cplusplus
 }
 #endif

@@ -1,4 +1,5 @@
 QT -= gui
+QT += core websockets
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
@@ -14,12 +15,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-SOURCES += \   
+SOURCES += \
         main.cpp\
-#        controller.cpp \
-#       gpiocontrol.cpp \
+        controller.cpp \
+        gpiocontrol.cpp \
         common.cpp \
         codingchannel.cpp \
+        websock_client.cpp \
 #       devices/spi_bridge/ftdi/ft4222.cpp \
         devices/spi_bridge/prolific/pl23d3.cpp \
 #       devices/dac/dac80004/dac80004.cpp \
@@ -27,11 +29,12 @@ SOURCES += \
         devices/adc/ads8866.cpp \        
 
 
-HEADERS += \           
-#       controller.h \
-#       gpiocontrol.h \
+HEADERS += \
+        controller.h \
+        gpiocontrol.h \
         common.h \
         codingchannel.h \
+        websock_client.h \
 #       devices/spi_bridge/ftdi/ft4222.h \
         devices/spi_bridge/prolific/pl23d3.h \
 #       devices/dac/dac80004/dac80004.h \
