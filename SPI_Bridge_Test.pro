@@ -16,28 +16,27 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+        coding_channel.cpp \
+        jsondatahandle.cpp \
         main.cpp\
         controller.cpp \
-        gpiocontrol.cpp \
-        common.cpp \
-        codingchannel.cpp \
+        afe_control.cpp \
         websock_client.cpp \
-#       devices/spi_bridge/ftdi/ft4222.cpp \
+        gpiocontrol.cpp \
+        common.cpp \        
         devices/spi_bridge/prolific/pl23d3.cpp \
-#       devices/dac/dac80004/dac80004.cpp \
         devices/dac/dac8562/dac8562.cpp \
         devices/adc/ads8866.cpp \        
 
-
 HEADERS += \
+        coding_channel.h \
         controller.h \
+        afe_control.h \
+        jsondatahandle.h \
+        websock_client.h \
         gpiocontrol.h \
         common.h \
-        codingchannel.h \
-        websock_client.h \
-#       devices/spi_bridge/ftdi/ft4222.h \
         devices/spi_bridge/prolific/pl23d3.h \
-#       devices/dac/dac80004/dac80004.h \
         devices/dac/dac8562/dac8562.h \
         devices/adc/ads8866.h \
 

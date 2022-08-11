@@ -16,6 +16,9 @@
 #define CMD_PWR_UP_A_B            0x20  // 命令：上电A、B路
 #define DATA_PWR_UP_A_B           0x0003  // 数据：Power up DAC-A and DAC-B  data
 
+#define CMD_PWR_DOWN_A_B          0x20    // power down Hi-
+#define DATA_PWR_DOWN_A_B         0x001B  // 数据：Power Down DAC-A and DAC-B  data
+
 #define CMD_RESET_ALL_REG         0x28  // 命令：所有寄存器复位、清空寄存器
 #define DATA_RESET_ALL_REG        0x0001  // 数据：所有寄存器复位、清空寄存器
 

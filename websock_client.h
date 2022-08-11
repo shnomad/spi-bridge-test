@@ -1,22 +1,25 @@
 #ifndef WEBSOCK_CLIENT_H
 #define WEBSOCK_CLIENT_H
 
-#include <QObject>
 #include <QTimer>
+#include "common.h"
+#include "jsondatahandle.h"
 #include <QtWebSockets/QWebSocket>
 
-class client : public QObject
+class jsonDataHandle;
+
+class WebSockClient : public QObject
 {
     Q_OBJECT
 public:
-    explicit client(QObject *parent = nullptr);
-    ~client();
+    explicit WebSockClient(Coding_Channel_Ctl::channel,QObject *parent = nullptr);
+    ~WebSockClient();
 signals:
 
 public slots:
 
 Q_SIGNALS:
-    void sig_transmitt_adc(QString);
+    void sig_cmd_resp(Coding_Channel_Ctl);
     void closed();
 
 private Q_SLOTS:
@@ -24,14 +27,15 @@ private Q_SLOTS:
     void disConnectedFromHost();
     void onConnected();
     void onTextMessageReceived(QString message);
-//    void receiveFromAfe(quint16);
-    void receiveFromAfe(QString);
+    void cmd_resp_with_coding_channel(Coding_Channel_Ctl);
 
 private:
     QWebSocket m_webSocket;
     QTimer *m_timer_doconnect;
-//  QUrl m_url;
     QString url="ws://10.42.0.69:9001";
+
+    Coding_Channel_Ctl m_ch_ctl_param{};
+    jsonDataHandle *m_json_data;
 };
 
 #endif // WEBSOCK_CLIENT_H

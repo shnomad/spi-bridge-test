@@ -1,18 +1,17 @@
-#include "codingchannel.h"
+#include "afe_control.h"
 #include <bits/stdc++.h>
 
-CodingChannel::CodingChannel(quint8 port, QObject *parent) : QObject(parent)
+AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QObject *parent) : QObject(parent)
 {    
-    QList<QString> hid_port_name = {"usb-spi-1","usb-spi-2","usb-spi-3","usb-spi-4","usb-spi-5", \
-                                    "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
-                                    "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
-
     m_usb_spi = new pl23d3;
     m_dac = new dac8562;
     m_adc = new ads8866;
 
-    QString hidpath = "/dev/hidraw0";
-//  QString hidpath = hid_port_name.at(port);
+    m_timer_adc = new QTimer;
+    m_timer_adc_transmitt = new QTimer;
+    m_timer_notice = new QTimer;
+
+    QString hidpath = "/dev/"+hid_port_name;
 
     hid_fd = m_usb_spi->SPI_Open(hidpath.toStdString().c_str());
 
@@ -22,15 +21,11 @@ CodingChannel::CodingChannel(quint8 port, QObject *parent) : QObject(parent)
         exit(0);
     }
 
+    m_ch_ctl_param.m_ch = ch;
+
     m_usb_spi->SPI_Master_Init(hid_fd);
 
     dac_init();
-
-    qint32 result = dac_out(CodingChannel::DAC_CH::CH_A, 300.0f);
-           result = dac_out(CodingChannel::DAC_CH::CH_B, 300.0f);
-
-    if(result< 0)
-        exit(0);
 
     /* Socket notifier for SPI read interrupt*/
     m_notify_hid = new QSocketNotifier(hid_fd, QSocketNotifier::Read, this);
@@ -39,23 +34,34 @@ CodingChannel::CodingChannel(quint8 port, QObject *parent) : QObject(parent)
 
     m_notify_hid->setEnabled(true);
 
-    /* ADC data start timer, start immediately */
-    m_timer_adc.setSingleShot(true);
-    m_timer_adc.setInterval(1);
+    /* read ADC started by timer*/
+    m_timer_adc->setSingleShot(true);
+    m_timer_adc->setInterval(1);
 
-    QObject::connect(&m_timer_adc, SIGNAL(timeout()), this, SLOT(adc_read()));
+    QObject::connect(m_timer_adc, SIGNAL(timeout()), this, SLOT(adc_read()));
 
     /* ADC data transmittion timer, after ADC capure & calculate complete it'll start */
-    m_timer_adc_transmitt.setSingleShot(true);
-    m_timer_adc_transmitt.setInterval(5000);    
+    m_timer_adc_transmitt->setSingleShot(true);
+    m_timer_adc_transmitt->setInterval(5000);
 
-    QObject::connect(&m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
+    QObject::connect(m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
 
-    /*Later, it'll controlled by Host/server */
- //  adc_read_start();
+    /* notice to websock thread "I'm Ready"*/
+    m_timer_notice->setSingleShot(true);
+    m_timer_notice->setInterval(1000);
+
+    connect(m_timer_notice, &QTimer::timeout,[=]()
+          {
+//              m_ch_ctl_param.m_ch = static_cast<Coding_Channel_Ctl::channel>(conding_ch_number);
+                m_ch_ctl_param.m_resp = Coding_Channel_Ctl::AFE_START;
+
+                emit sig_cmd_resp(m_ch_ctl_param);
+          });
+
+    m_timer_notice->start();
 }
 
-qint32 CodingChannel::dac_init()
+qint32 AFEControl::dac_init()
 {
     /* DAC Initialize */
 
@@ -72,29 +78,37 @@ qint32 CodingChannel::dac_init()
     return result;
 }
 
-qint32 CodingChannel::dac_out(CodingChannel::DAC_CH ch, float value)
+qint32 AFEControl::dac_out(AFEControl::DAC_CH ch, float value)
 {
     /* DAC voltage out */
 
     qint32 result;
 
-   if(ch == CodingChannel::DAC_CH::CH_A)
+   if(ch == AFEControl::DAC_CH::CH_A)
+   {
      result = m_usb_spi->SPI_Single_Write(hid_fd, m_dac->writeA(value));
-   else if(ch == CodingChannel::DAC_CH::CH_B)
+     m_ch_ctl_param.dac_value_a = value;
+   }
+   else if(ch == AFEControl::DAC_CH::CH_B)
+   {
      result = m_usb_spi->SPI_Single_Write(hid_fd, m_dac->writeB(value));
+     m_ch_ctl_param.dac_value_b = value;
+   }
    else
+   {
      result = m_usb_spi->SPI_Single_Write(hid_fd, m_dac->writeALL(value));
+   }
 
    return result;
 }
 
-void CodingChannel::adc_read_start()
+void AFEControl::adc_read_start()
 {
     m_notify_hid->setEnabled(true);
-    m_timer_adc.start();
+    m_timer_adc->start();
 }
 
-qint32 CodingChannel::adc_read()
+qint32 AFEControl::adc_read()
 {
     qint32 result;
     result = m_usb_spi->SPI_Single_Read(hid_fd);
@@ -102,7 +116,7 @@ qint32 CodingChannel::adc_read()
     return result;
 }
 
-void CodingChannel::adc_read_ready()
+void AFEControl::adc_read_ready()
 {
     qint32  result;
     quint16 adc_value = 0;
@@ -128,7 +142,7 @@ void CodingChannel::adc_read_ready()
 
         adc_value = 0;
 
-        m_timer_adc.start();
+        m_timer_adc->start();
    }
    else
    {
@@ -166,7 +180,7 @@ void CodingChannel::adc_read_ready()
 
           read_adc_count = 0;
 
-          m_timer_adc_transmitt.start();
+          m_timer_adc_transmitt->start();
 
        /* 4. raw data & average data vector clear */
           adc_rawdata.clear();
@@ -174,25 +188,84 @@ void CodingChannel::adc_read_ready()
    }
 }
 
-void CodingChannel::adc_data_transmitt()
+void AFEControl::adc_data_transmitt()
 {
-    Log();
-    emit sig_transmitt_adc("adc_data_final");
+//  m_ch_ctl_param.m_ch = static_cast<Coding_Channel_Ctl::channel>(conding_ch_number);
+    m_ch_ctl_param.m_resp = Coding_Channel_Ctl::READ_ADC;
+    m_ch_ctl_param.adc_read_value = adc_data_final;
+
+    emit sig_cmd_resp(m_ch_ctl_param);
+
     adc_read_start();
 }
 
-void CodingChannel::dac_stop()
+void AFEControl::dac_stop()
 {
-
+    dac_init();
 }
 
-void CodingChannel::adc_read_stop()
+void AFEControl::adc_read_stop()
 {
-    m_timer_adc.stop();
-    m_timer_adc_transmitt.stop();
+    m_timer_adc->stop();
+    m_timer_adc_transmitt->stop();
 }
 
-CodingChannel::~CodingChannel()
+void AFEControl::cmd_resp_with_websock(Coding_Channel_Ctl m_ch_ctl)
+{
+    qint32 result;
+
+//    if(m_ch_ctl.m_ch == static_cast<Coding_Channel_Ctl::channel>(conding_ch_number))
+//    {
+        switch(m_ch_ctl.m_cmd)
+        {
+            case Coding_Channel_Ctl::START_DAC:
+
+                result = dac_out(AFEControl::DAC_CH::CH_A, 300.0f);
+                result = dac_out(AFEControl::DAC_CH::CH_B, 300.0f);
+
+//              m_ch_ctl_param.m_ch = static_cast<Coding_Channel_Ctl::channel>(conding_ch_number);
+
+                if(result < 0)
+                    m_ch_ctl_param.m_resp = Coding_Channel_Ctl::START_DAC_FAIL;
+                else
+                    m_ch_ctl_param.m_resp = Coding_Channel_Ctl::START_DAC_SUCCESS;
+
+                emit sig_cmd_resp(m_ch_ctl_param);
+
+            break;
+
+            case Coding_Channel_Ctl::STOP_DAC:
+
+
+            break;
+
+            case Coding_Channel_Ctl::START_ADC:
+
+                 adc_read_start();
+
+            break;
+
+            case Coding_Channel_Ctl::STOP_ADC:
+
+                 adc_read_stop();
+
+            break;
+
+            case Coding_Channel_Ctl::UNKNOW_COMMAND:
+
+            break;
+
+            default:
+
+                m_ch_ctl_param.m_resp = Coding_Channel_Ctl::AFE_START;
+                emit sig_cmd_resp(m_ch_ctl_param);
+
+            break;
+        }
+    //}
+}
+
+AFEControl::~AFEControl()
 {
 
 }

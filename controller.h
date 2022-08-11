@@ -1,15 +1,11 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <QObject>
-#include <QTimer>
 #include <QThread>
-#include <QSignalMapper>
 #include "common.h"
+#include "coding_channel.h"
 
-class CodingChannel;
-class GpioControl;
-class client;
+class coding_channel;
 
 class Controller : public QObject
 {
@@ -18,25 +14,18 @@ class Controller : public QObject
 public:
 
     explicit Controller(QObject *parent = nullptr);
-    void thread_comm();
     ~Controller();
 
 signals:
 
+
 public slots:
 
 private:
+    coding_channel *m_ch[15];
+    QThread *m_pthread[15];
+    quint8 max_thread_count = 1;
 
-    QSignalMapper *signalMapper;
-
-    CodingChannel *m_ch[15];
-    QThread *m_coding_pThread[15], *m_sock_pThread;
-    quint8 max_thread_count=1;
-
-    GpioControl *m_GpioControl;
-    QTimer gpio_delay;
-
-    client *m_sock;
 };
 
 #endif // CONTROLLER_H
