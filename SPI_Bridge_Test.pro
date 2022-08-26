@@ -1,5 +1,5 @@
 QT -= gui
-QT += core websockets
+QT += core network
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
@@ -21,24 +21,25 @@ SOURCES += \
         main.cpp\
         controller.cpp \
         afe_control.cpp \
-        websock_client.cpp \
         gpiocontrol.cpp \
-        common.cpp \        
+        common.cpp \
         devices/spi_bridge/prolific/pl23d3.cpp \
         devices/dac/dac8562/dac8562.cpp \
-        devices/adc/ads8866.cpp \        
+        devices/adc/ads8866.cpp \
+        tcpsocketrw.cpp
 
 HEADERS += \
+        buildinfo.h \
         coding_channel.h \
         controller.h \
         afe_control.h \
         jsondatahandle.h \
-        websock_client.h \
         gpiocontrol.h \
         common.h \
         devices/spi_bridge/prolific/pl23d3.h \
         devices/dac/dac8562/dac8562.h \
         devices/adc/ads8866.h \
+        tcpsocketrw.h
 
 INCLUDEPATH +=/opt/debian_imx8mm-var-dart/qt5/sysroot/usr/local/include \
             +=/opt/debian_imx8mm-var-dart/qt5/sysroot/usr/include

@@ -5,8 +5,10 @@
 #include <QVector>
 #include "common.h"
 
+#define LocalPort_pre   60000
+
 class AFEControl;
-class WebSockClient;
+class TcpSocketRW;
 
 class coding_channel : public QObject
 {
@@ -24,10 +26,13 @@ public slots:
 private:
 
     AFEControl *m_afe_control;
-    WebSockClient *m_websock_client;
-    Coding_Channel_Ctl m_coding_ch_ctl_param{};
+    TcpSocketRW *m_tcpsocket;
 
+    Coding_Channel_Ctl m_coding_ch_ctl{};
     QVector <int *>afe_channel;
+    volatile quint8 channel_number;
+
+   local_network_info *net_info;
 };
 
 #endif // CODING_CHANNEL_THREAD_H

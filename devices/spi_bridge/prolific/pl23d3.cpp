@@ -71,8 +71,9 @@ qint32 pl23d3::SPI_Master_Init(int fd)
 
      feature_report_buf[0] = 0x80;
      feature_report_buf[1] = 0x10;
-//   feature_report_buf[2] = 0x1d;       /* SPI Frequency(KHz) = 24000/(29+1) = 800 KHz */
-     feature_report_buf[2] = 0x13;       /* SPI Frequency(KHz) = 24000/(19+1) = 1,200 KHz */
+//   feature_report_buf[2] = 0x1d;       /* SPI Frequency(KHz) = 24,000/(29+1) = 800 KHz */
+//   feature_report_buf[2] = 0x13;       /* SPI Frequency(KHz) = 24,000/(19+1) = 1,200 KHz */
+     feature_report_buf[2] = 0x3;        /* SPI Frequency(KHz) = 24,000/(3+1) =  6,000 KHz */
 
      result = ioctl(fd, HIDIOCSFEATURE(3), feature_report_buf);
 

@@ -7,11 +7,13 @@
 #include "devices/spi_bridge/prolific/pl23d3.h"
 #include "devices/dac/dac8562/dac8562.h"
 #include "devices/adc/ads8866.h"
+#include "jsondatahandle.h"
 #include "common.h"
 
 class pl23d3;
 class dac8562;
 class ads8866;
+class jsonDataHandle;
 
 class AFEControl : public QObject
 {
@@ -25,11 +27,13 @@ public:
     };
 
     explicit AFEControl(QString, Coding_Channel_Ctl::channel, QObject *parent = nullptr);
-        ~AFEControl();
+        ~AFEControl();    
+
 signals:
 
 Q_SIGNALS:
-    void sig_cmd_resp(Coding_Channel_Ctl);
+    void sig_cmd_to_afe(Coding_Channel_Ctl);
+    void sig_resp_from_afe(QString);
     void sig_read_adc_manual();
     void sig_stop_read_adc_manual();
 
@@ -44,7 +48,7 @@ public Q_SLOTS:
     void adc_data_transmitt();
     void dac_stop();
     void adc_read_stop();
-    void cmd_resp_with_websock(Coding_Channel_Ctl);
+    void cmd_from_TcpSocket(Coding_Channel_Ctl);
 
 private:
     int hid_fd;
@@ -62,8 +66,10 @@ private:
     volatile quint32 read_adc_count =0;
     volatile quint16 adc_data_final = 0;
 
-    Coding_Channel_Ctl m_ch_ctl_param{};
+    Coding_Channel_Ctl afe_coding_ch_ctl{};
     quint8 conding_ch_number =0;
+
+    jsonDataHandle *resp_to_json;
 };
 
 #endif // AFECONTROL_H

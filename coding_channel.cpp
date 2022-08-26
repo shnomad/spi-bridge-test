@@ -1,32 +1,35 @@
 
 #include "coding_channel.h"
-#include "websock_client.h"
+#include "tcpsocketrw.h"
 #include "afe_control.h"
 
 coding_channel::coding_channel(quint8 thread_seq, QObject *parent) : QObject(parent)
 {
-
-   qRegisterMetaType<Coding_Channel_Ctl>();
+    qRegisterMetaType<Coding_Channel_Ctl>();
 
     QList<QString> hid_port_name = {"usb-spi-1","usb-spi-2","usb-spi-3","usb-spi-4","usb-spi-5", \
                                     "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
                                     "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
+    net_info = new local_network_info;
+
     set_afe_number();
 
     /* Read Board ID/Number */
-    quint8 Board_Number = 0x0;
-    quint8 channel_number = get_afe_number(Board_Number, thread_seq);
+    quint8 Board_Number = 0x0;      //read from GPIO
+    channel_number = get_afe_number(Board_Number, thread_seq);
 
-    m_coding_ch_ctl_param.m_ch = static_cast<Coding_Channel_Ctl::channel>(channel_number);
+    m_coding_ch_ctl.m_ch = static_cast<Coding_Channel_Ctl::channel>(channel_number);
+    net_info->TCP_Local_port = channel_number + LocalPort_pre;
+    net_info->TCP_Remote_address = "10.42.0.69";
+    net_info->TCP_Remote_port = 9001;
 
-    /*create object*/
-    m_afe_control = new AFEControl(hid_port_name.at(thread_seq), m_coding_ch_ctl_param.m_ch);
-    m_websock_client = new WebSockClient(m_coding_ch_ctl_param.m_ch);
+    /* Create object*/
+    m_tcpsocket = new TcpSocketRW(net_info, m_coding_ch_ctl.m_ch);
+    m_afe_control = new AFEControl(hid_port_name.at(thread_seq), m_coding_ch_ctl.m_ch);
 
-    /* creat connect between AFEControl and WebSocketClient */
-    QObject::connect(m_afe_control, SIGNAL(sig_cmd_resp(Coding_Channel_Ctl)), m_websock_client, SLOT(cmd_resp_with_coding_channel(Coding_Channel_Ctl)));
-    QObject::connect(m_websock_client, SIGNAL(sig_cmd_resp(Coding_Channel_Ctl)), m_afe_control, SLOT(cmd_resp_with_websock(Coding_Channel_Ctl)));
-
+   /* creat connect between AFEControl and WebSocketClient */
+    QObject::connect(m_tcpsocket, SIGNAL(sig_cmd_to_afe(Coding_Channel_Ctl)), m_afe_control, SLOT(cmd_from_TcpSocket(Coding_Channel_Ctl)));
+    QObject::connect(m_afe_control, SIGNAL(sig_resp_from_afe(QString)), m_tcpsocket, SLOT(resp_from_afe(QString)));
 }
 
 void coding_channel::set_afe_number()
