@@ -51,7 +51,7 @@ struct Coding_Channel_Ctl
     channel m_ch = channel::CH_UNKNOWN;
 
     quint8 channel_number = 0x0;
-    float dac_value_a = 0.0, dac_value_b =0.0;
+    quint16 dac_value_a = 0, dac_value_b =0;
     quint16 adc_read_value = 0x0;
     quint32 adc_interval = 0x0;
 }; Q_DECLARE_METATYPE(Coding_Channel_Ctl)

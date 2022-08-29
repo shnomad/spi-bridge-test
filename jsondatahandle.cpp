@@ -5,8 +5,8 @@ jsonDataHandle::jsonDataHandle(QObject *parent) : QObject(parent)
 {
 
 }
-
-QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg)
+                                                                    //DAC        , ADC
+QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg1, quint16 *arg2)
 {
      QJsonObject mainObject, ADC, DAC;
      QString adc_data_number = "data";
@@ -18,10 +18,14 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
       mainObject.insert("Date",QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss ap"));
 
      /* Response for RESP_DAC_CHECK_WORK_SUCCESS, RESP_DAC_OUT_COUNTER_SUCCESS */
-    if(ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_DAC_CHECK_WORK_SUCCESS || ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_DAC_CHECK_COUNTER_SUCCESS)
-    {
-        DAC.insert("Work",arg[0]);
-        DAC.insert("Counter",arg[1]);
+    if(ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_DAC_CHECK_WORK_SUCCESS || ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_DAC_CHECK_COUNTER_SUCCESS \
+      || ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS || ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_SUCCESS  \
+      || ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_START_MEASURE_SUCCESS || ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE)
+    {                
+//        DAC.insert("Work", arg1[0]);
+//        DAC.insert("Counter",arg1[1]);
+          DAC.insert("Work", QString::number(arg1[0], 10));
+          DAC.insert("Counter",QString::number(arg1[1], 10));
     }
     else
     {
@@ -29,7 +33,7 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
         DAC.insert("Counter","");
     }
 
-    mainObject.insert("DAC", DAC);
+    mainObject.insert("DAC[mV]", DAC);
 
     /* RESP_MEASURED_ADC_VALUE */
    if(ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE)
@@ -37,11 +41,14 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
        for(quint8 seq=0; seq<10; seq++)
        {
            adc_data_number += QString::number(seq, 10);
-           ADC.insert(adc_data_number,arg[seq]);
+//         ADC.insert(adc_data_number, arg[seq]);
+           ADC.insert(adc_data_number, QString::number(arg2[seq], 16));
            adc_data_number = "data";
        }
-           ADC.insert("MaxData",arg[10]);
-           ADC.insert("MinData",arg[11]);
+//           ADC.insert("MaxData",arg[10]);
+//           ADC.insert("MinData",arg[11]);
+       ADC.insert("MaxData",QString::number(arg2[10], 16));
+       ADC.insert("MinData",QString::number(arg2[11], 16));
    }
    else
    {
@@ -80,7 +87,7 @@ Coding_Channel_Ctl jsonDataHandle::parse(QString message)
 
      if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_WORK)
      {
-            QJsonObject dac = jsonObj.value("DAC").toObject();
+            QJsonObject dac = jsonObj.value("DAC[mV]").toObject();
 
             QJsonValue dac_work =dac.value("Work");
 
@@ -88,7 +95,7 @@ Coding_Channel_Ctl jsonDataHandle::parse(QString message)
      }
       else if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER)
      {
-            QJsonObject dac = jsonObj.value("DAC").toObject();
+            QJsonObject dac = jsonObj.value("DAC[mV]").toObject();
 
             QJsonValue dac_counter =dac.value("Counter");
 

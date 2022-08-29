@@ -63,8 +63,13 @@ private:
     QVector<quint16> adc_rawdata;           //save 1,200
     QVector<quint16> adc_average;           //save 40
 
+    quint16 adc_min=0, adc_max=0;
+    volatile quint8 total_count_loop=0;
+
     volatile quint32 read_adc_count =0;
     volatile quint16 adc_data_final = 0;
+    quint16 adc_data_resp[12]= {0x0,};
+    quint16 dac_value[2]={0x0,};
 
     Coding_Channel_Ctl afe_coding_ch_ctl{};
     quint8 conding_ch_number =0;

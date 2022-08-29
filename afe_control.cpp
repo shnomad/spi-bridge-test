@@ -1,5 +1,6 @@
 #include "afe_control.h"
 #include <bits/stdc++.h>
+#include <algorithm>
 
 AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QObject *parent) : QObject(parent)
 {    
@@ -123,81 +124,135 @@ void AFEControl::adc_read_ready()
 {
     qint32  result;
     quint16 adc_value = 0;
-    quint64 adc_average_1st=0, adc_average_2nd=0;
+    quint64 adc_average_1st=0, adc_average_2nd=0;    
 
-   if(read_adc_count < 1200)
-   {
-         /* Read ADC data and store */
-         result = read(hid_fd, spi_read_buf, 64);
+   if(total_count_loop < 10)
+    {
 
-        if(spi_read_buf[0] == 0xb3 && spi_read_buf[63] == 0x2)
-        {
-            adc_value |= spi_read_buf[1] << 8;
-            adc_value |= spi_read_buf[2];
-
-            adc_rawdata.append(adc_value);
-
-            read_adc_count++;
-        }
-
-//      if(read_adc_count ==1 || read_adc_count == 1200)
-//          Log()<<"["<< read_adc_count <<"]"<< " Read ADC Value :"<<  QString("%1").arg(adc_value, 0, 16);
-
-        adc_value = 0;
-
-        m_timer_adc->start();
-   }
-   else
-   {
-        m_notify_hid->setEnabled(false);
-
-       /* 1. Calculate the average value of every 30 ADC data, it makes 40 ADC average data */
-       for(quint32 adc_cal_count =0; adc_cal_count<1200; adc_cal_count++)
+       if(read_adc_count < 1200)
        {
-           adc_average_1st += adc_rawdata[adc_cal_count];
+             /* Read ADC data and store */
+             result = read(hid_fd, spi_read_buf, 64);
 
-           if(adc_cal_count && (adc_cal_count%30 == 29))
-           {
-               adc_average.append(adc_average_1st/30);
-               adc_average_1st =0;
-           }
+            if(spi_read_buf[0] == 0xb3 && spi_read_buf[63] == 0x2)
+            {
+                adc_value |= spi_read_buf[1] << 8;
+                adc_value |= spi_read_buf[2];
+
+                adc_rawdata.append(adc_value);
+
+                read_adc_count++;
+            }
+
+    //      if(read_adc_count ==1 || read_adc_count == 1200)
+    //          Log()<<"["<< read_adc_count <<"]"<< " Read ADC Value :"<<  QString("%1").arg(adc_value, 0, 16);
+
+            adc_value = 0;
+
+            m_timer_adc->start();
        }
+       else
+       {
+            m_notify_hid->setEnabled(false);            
 
-       /*  2. sorting the adc data & drop the  upper/lower 10 ADC data */
-          qSort(adc_average.begin(), adc_average.end());
+            /* ADC min. max. value check */
+            if(total_count_loop == 0)
+            {
+                adc_min = *min_element(adc_rawdata.begin(), adc_rawdata.end());
+                adc_max = *max_element(adc_rawdata.begin(), adc_rawdata.end());
+            }
+            else
+            {
+                quint16 tmp_min, tmp_max;
 
-          adc_average.remove(30, 10);
-          adc_average.remove(0, 10);
+                tmp_min = *min_element(adc_rawdata.begin(), adc_rawdata.end());
+                tmp_max = *max_element(adc_rawdata.begin(), adc_rawdata.end());
 
-       /*  3. Calculate the average value of 20 ADC data */
-          for(quint8 adc_cal_count=0; adc_cal_count<20; adc_cal_count++)
-          {
-              adc_average_2nd += adc_average[adc_cal_count];
-          }
+                if(adc_min > tmp_min)
+                {
+                     adc_min = adc_min - tmp_min;
+                     tmp_min = adc_min + tmp_min;
+                     adc_min = tmp_min - adc_min;
+                }
 
-          adc_average_2nd /= 20;
+                if(adc_max < tmp_max)
+                {
+                    tmp_max = tmp_max - adc_max;
+                    adc_max = tmp_max + adc_max;
+                    tmp_max = adc_max - tmp_max;
+                }
+            }
 
-         Log() <<"Averfage of ADC Value :"<<  QString("%1").arg(adc_average_2nd, 0, 16);
+           /* 1. Calculate the average value of every 30 ADC data, it makes 40 ADC average data */
+           for(quint32 adc_cal_count =0; adc_cal_count<1200; adc_cal_count++)
+           {
+               adc_average_1st += adc_rawdata[adc_cal_count];
 
-          adc_data_final = static_cast<quint16>(adc_average_2nd);
+               if(adc_cal_count && (adc_cal_count%30 == 29))
+               {
+                   adc_average.append(adc_average_1st/30);
+                   adc_average_1st =0;
+               }
+           }
 
-          read_adc_count = 0;          
+           /*  2. sorting the adc data & drop the  upper/lower 10 ADC data */
+              qSort(adc_average.begin(), adc_average.end());
 
-          m_timer_adc_transmitt->start();
+              adc_average.remove(30, 10);
+              adc_average.remove(0, 10);
 
-       /* 4. raw data & average data vector clear */
-          adc_rawdata.clear();
-          adc_average.clear();
-   }
+           /*  3. Calculate the average value of 20 ADC data */
+              for(quint8 adc_cal_count=0; adc_cal_count<20; adc_cal_count++)
+              {
+                  adc_average_2nd += adc_average[adc_cal_count];
+              }
+
+              adc_average_2nd /= 20;
+
+             //Log() <<"Averfage of ADC Value :"<<  QString("%1").arg(adc_average_2nd, 0, 16);
+
+              adc_data_final = static_cast<quint16>(adc_average_2nd);
+              read_adc_count = 0;
+
+           /* 4. raw data & average data vector clear */
+              adc_rawdata.clear();
+              adc_average.clear();
+
+              Log() <<"Final ADC Value :"<<  QString("%1").arg(adc_data_final, 0, 16);
+
+              adc_data_resp[total_count_loop] = adc_data_final;
+
+              adc_data_final = 0;
+
+              if(total_count_loop < 9)
+              {
+                  total_count_loop++;
+
+                  adc_read_start();
+              }
+              else
+              {
+                  adc_data_resp[10] = adc_max;
+                  adc_data_resp[11] = adc_min;
+
+                  afe_coding_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE;
+                  emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, dac_value, adc_data_resp));
+
+                  memset((void *)adc_data_resp, 0x0, sizeof(adc_data_resp));
+
+                  total_count_loop = 0;
+              }
+       }
+    }
 }
 
 void AFEControl::adc_data_transmitt()
 {
 //  m_ch_ctl_param.m_ch = static_cast<Coding_Channel_Ctl::channel>(conding_ch_number);
 //  m_ch_ctl_param.m_resp = Coding_Channel_Ctl::READ_ADC;
-    afe_coding_ch_ctl.adc_read_value = adc_data_final;
+//  afe_coding_ch_ctl.adc_read_value = adc_data_final;
 //  emit sig_cmd_resp(afe_coding_ch_ctl);
-    adc_read_start();
+//  adc_read_start();
 }
 
 void AFEControl::dac_stop()
@@ -209,12 +264,18 @@ void AFEControl::adc_read_stop()
 {
     m_timer_adc->stop();
     m_timer_adc_transmitt->stop();
+
+    memset((void *)adc_data_resp, 0x0, sizeof(adc_data_resp));
+
+    adc_rawdata.clear();
+    adc_average.clear();
+
 }
 
 void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 {
     qint32 result;
-    quint16 *arg = nullptr;
+    quint16 *arg1, *arg2 = nullptr;
 
         switch(m_ch_ctl.m_cmd)
         {
@@ -225,23 +286,33 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
             case Coding_Channel_Ctl::CMD_START_MEASURE:
 
                  adc_read_start();
+                 arg1 = (quint16 *)&dac_value;
+                 m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_START_MEASURE_SUCCESS;
 
             break;
 
             case Coding_Channel_Ctl::CMD_STOP_MEASURE:
 
                  adc_read_stop();
+                 m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_STOP_MEASURE_SUCCESS;
 
             break;
 
             case Coding_Channel_Ctl::CMD_DAC_OUT_WORK:
 
-                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));
+                dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);
+
+                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));                
 
                 if(result >0)
+                {
+                    arg1 = (quint16 *)&dac_value;
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+                }
                 else
+                {
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
+                }
 
                 break;
 
@@ -251,12 +322,19 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
             case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER:
 
+                dac_value[1] = m_ch_ctl.dac_value_b;
+
                 result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<float>(m_ch_ctl.dac_value_b));
 
                 if(result >0)
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_SUCCESS;
+                {
+                    arg1 = (quint16 *)&dac_value;
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_SUCCESS;                    
+                }
                 else
+                {
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_FAIL;
+                }
 
                 break;
 
@@ -286,7 +364,7 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
         }    
 
         m_ch_ctl.m_ch = afe_coding_ch_ctl.m_ch;
-        emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg));
+        emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg1, arg2));
 }
 
 AFEControl::~AFEControl()

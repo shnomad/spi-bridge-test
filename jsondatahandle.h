@@ -17,7 +17,7 @@ public:
     ~jsonDataHandle();
 
     //void create(quint16, quint16, float, float, QString &);
-    QString encode_resp(Coding_Channel_Ctl, quint16 *);
+    QString encode_resp(Coding_Channel_Ctl, quint16 *, quint16 *);
     Coding_Channel_Ctl parse(QString);
 
 signals:
