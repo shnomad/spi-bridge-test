@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <QTimer>
 #include "jsondatahandle.h"
 #include "common.h"
 
@@ -67,8 +68,13 @@ private:
     local_network_info *m_local_network_info;
 
     /* Coding channel parameter */
-    Coding_Channel_Ctl tcp_coding_ch_ctl{};
-
+    Coding_Channel_Ctl tcp_coding_ch_ctl{}, tcp_coding_ch_ctl_tmp{};
     jsonDataHandle *json_to_cmd;
+
+    /* TCP Socket 15Channel Dummy Test */
+    QTimer *send_dummy_adc_timer;
+    quint16 dac_value[2]={0x0,};
+    quint16 adc_data_resp[12]= {0x0,};
+
 };
 #endif // WEBSOCK_CLIENT_H

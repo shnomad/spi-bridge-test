@@ -12,7 +12,7 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
      QString adc_data_number = "data";
 
      /* Insert single datas first */
-      mainObject.insert("id", ch_ctl_resp.m_ch);
+      mainObject.insert("channel", ch_ctl_resp.m_ch);
       mainObject.insert("status", ch_ctl_resp.m_resp);
       mainObject.insert("BuildDate",build_date);
       mainObject.insert("Date",QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss ap"));
@@ -45,10 +45,10 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
            ADC.insert(adc_data_number, QString::number(arg2[seq], 16));
            adc_data_number = "data";
        }
-//           ADC.insert("MaxData",arg[10]);
-//           ADC.insert("MinData",arg[11]);
-       ADC.insert("MaxData",QString::number(arg2[10], 16));
-       ADC.insert("MinData",QString::number(arg2[11], 16));
+//         ADC.insert("MaxData",arg[10]);
+//         ADC.insert("MinData",arg[11]);
+           ADC.insert("MaxData",QString::number(arg2[10], 16));
+           ADC.insert("MinData",QString::number(arg2[11], 16));
    }
    else
    {

@@ -25,11 +25,14 @@ coding_channel::coding_channel(quint8 thread_seq, QObject *parent) : QObject(par
 
     /* Create object*/
     m_tcpsocket = new TcpSocketRW(net_info, m_coding_ch_ctl.m_ch);
-    m_afe_control = new AFEControl(hid_port_name.at(thread_seq), m_coding_ch_ctl.m_ch);
 
-   /* creat connect between AFEControl and WebSocketClient */
-    QObject::connect(m_tcpsocket, SIGNAL(sig_cmd_to_afe(Coding_Channel_Ctl)), m_afe_control, SLOT(cmd_from_TcpSocket(Coding_Channel_Ctl)));
-    QObject::connect(m_afe_control, SIGNAL(sig_resp_from_afe(QString)), m_tcpsocket, SLOT(resp_from_afe(QString)));
+    /* TCP Socket 15Channel Dummy Test */
+    if(thread_seq == 0)
+    {
+       m_afe_control = new AFEControl(hid_port_name.at(thread_seq), m_coding_ch_ctl.m_ch);
+       QObject::connect(m_tcpsocket, SIGNAL(sig_cmd_to_afe(Coding_Channel_Ctl)), m_afe_control, SLOT(cmd_from_TcpSocket(Coding_Channel_Ctl)));
+       QObject::connect(m_afe_control, SIGNAL(sig_resp_from_afe(QString)), m_tcpsocket, SLOT(resp_from_afe(QString)));
+    }
 }
 
 void coding_channel::set_afe_number()

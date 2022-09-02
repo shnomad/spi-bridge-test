@@ -11,6 +11,8 @@ extern "C" {
 #endif
 */
 
+#define socket_communication_test 0
+
 void delay_mSec(int);
 
 #define Log() qDebug() <<"["<<QDateTime::currentDateTime().toString("MM.dd hh:mm:ss") << __PRETTY_FUNCTION__ << __LINE__ << "]"

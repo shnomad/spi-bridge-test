@@ -1,7 +1,6 @@
 #include "tcpsocketrw.h"
 #include "common.h"
 
-//TcpSocketRW::TcpSocketRW(local_network_info *net_info, QObject *parent) : QObject(parent)
 TcpSocketRW::TcpSocketRW(local_network_info *net_info, Coding_Channel_Ctl::channel n_ch, QObject *parent) : QObject(parent)
 {
     qInfo() << "TCPSocketRW Started"<<Qt::endl;
@@ -22,9 +21,30 @@ TcpSocketRW::TcpSocketRW(local_network_info *net_info, Coding_Channel_Ctl::chann
     m_timer_close->setSingleShot(true);
     m_timer_close->setInterval(1000*30);
 
-    connect(this, SIGNAL(sig_connetion_status(socket_status)), this, SLOT(manage_connection(socket_status)));    
+    connect(this, SIGNAL(sig_connetion_status(socket_status)), this, SLOT(manage_connection(socket_status)));
     connect(m_timer_doconnect, SIGNAL(timeout()), this, SLOT(doConnect()));
     connect(m_timer_close, SIGNAL(timeout()), this, SLOT(sock_disconnect()));
+
+    /* TCP Socket 15 Channel Dummy Test */
+    send_dummy_adc_timer = new QTimer;
+    send_dummy_adc_timer->setSingleShot(true);
+    send_dummy_adc_timer->setInterval(1000*27);
+
+    connect(send_dummy_adc_timer, &QTimer::timeout,[=]()
+         {
+            for(quint8 count=0; count<10; count++)
+              adc_data_resp[count] = 0x222e;
+
+            adc_data_resp[10] = 0x223d;
+            adc_data_resp[11] = 0x211e;
+
+            dac_value[0] = 400;
+            dac_value[1] = 300;
+
+            tcp_coding_ch_ctl_tmp.m_resp = Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE;
+            writedata(json_to_cmd->encode_resp(tcp_coding_ch_ctl_tmp, dac_value, adc_data_resp).toStdString().c_str());
+         });
+    /* End of TCP Socket 15 Channel Dummy Test */
 
     m_timer_doconnect->start();
 }
@@ -175,9 +195,63 @@ void TcpSocketRW::readyRead()
 //  json_to_cmd->parse(QByteArray(m_readData));
 
     /* send command to afe control */
-    emit sig_cmd_to_afe(json_to_cmd->parse(QByteArray(m_readData)));
-}
+    if(tcp_coding_ch_ctl.m_ch == 0x1)
+    {
+        emit sig_cmd_to_afe(json_to_cmd->parse(QByteArray(m_readData)));
+    }
+    else
+    {
 
+    /* TCP Socket 15Channel Dummy Test */
+       quint16 *arg1, *arg2 = nullptr;
+       tcp_coding_ch_ctl_tmp = json_to_cmd->parse(QByteArray(m_readData));
+
+        switch(tcp_coding_ch_ctl_tmp.m_cmd)
+        {
+
+            case Coding_Channel_Ctl::CMD_START_MEASURE:
+
+                 send_dummy_adc_timer->start();
+
+                 arg1 = (quint16 *)&dac_value;
+                 tcp_coding_ch_ctl_tmp.m_resp = Coding_Channel_Ctl::RESP_START_MEASURE_SUCCESS;
+
+                break;
+
+            case Coding_Channel_Ctl::CMD_DAC_OUT_WORK:
+
+                dac_value[0] = tcp_coding_ch_ctl_tmp.dac_value_a;
+
+                arg1 = (quint16 *)&dac_value;
+                tcp_coding_ch_ctl_tmp.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+
+                break;
+
+            case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER:
+
+                dac_value[1] = tcp_coding_ch_ctl_tmp.dac_value_b;
+                arg1 = (quint16 *)&dac_value;
+                tcp_coding_ch_ctl_tmp.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_SUCCESS;
+
+                break;
+
+            case Coding_Channel_Ctl::CMD_AFE_READY:
+            case Coding_Channel_Ctl::CMD_STOP_MEASURE:
+            case Coding_Channel_Ctl::CMD_DAC_CHECK_WORK:
+            case Coding_Channel_Ctl::CMD_DAC_CHECK_COUNTER:
+            case Coding_Channel_Ctl::CMD_FW_CHECK:
+            case Coding_Channel_Ctl::CMD_BATTERY_CHECK:
+            case Coding_Channel_Ctl::CMD_UNKNOWN:
+                break;
+            default:
+                break;
+        }
+
+//     json_to_cmd->encode_resp(tcp_coding_ch_ctl_tmp, arg1, arg2);
+       tcp_coding_ch_ctl_tmp.m_ch = tcp_coding_ch_ctl.m_ch;
+       writedata(json_to_cmd->encode_resp(tcp_coding_ch_ctl_tmp, arg1, arg2).toStdString().c_str());
+    }
+}
 
 void TcpSocketRW::manage_connection(socket_status status)
 {
