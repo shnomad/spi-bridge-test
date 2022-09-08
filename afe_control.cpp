@@ -9,7 +9,7 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
     m_adc = new ads8866;
 
     m_timer_adc = new QTimer;
-    m_timer_adc_transmitt = new QTimer;
+//  m_timer_adc_transmitt = new QTimer;
     m_timer_notice = new QTimer;
 
     QString hidpath = "/dev/"+hid_port_name;
@@ -42,10 +42,9 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
     QObject::connect(m_timer_adc, SIGNAL(timeout()), this, SLOT(adc_read()));
 
     /* ADC data transmittion timer, after ADC capure & calculate complete it'll start */
-    m_timer_adc_transmitt->setSingleShot(true);
-    m_timer_adc_transmitt->setInterval(0);
-
-    QObject::connect(m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
+//  m_timer_adc_transmitt->setSingleShot(true);
+//  m_timer_adc_transmitt->setInterval(0);
+//  QObject::connect(m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
 
     /* notice to websock thread "I'm Ready"*/
     m_timer_notice->setSingleShot(true);
@@ -246,14 +245,14 @@ void AFEControl::adc_read_ready()
     }
 }
 
-void AFEControl::adc_data_transmitt()
-{
+//void AFEControl::adc_data_transmitt()
+//{
 //  m_ch_ctl_param.m_ch = static_cast<Coding_Channel_Ctl::channel>(conding_ch_number);
 //  m_ch_ctl_param.m_resp = Coding_Channel_Ctl::READ_ADC;
 //  afe_coding_ch_ctl.adc_read_value = adc_data_final;
 //  emit sig_cmd_resp(afe_coding_ch_ctl);
 //  adc_read_start();
-}
+//}
 
 void AFEControl::dac_stop()
 {
@@ -263,7 +262,6 @@ void AFEControl::dac_stop()
 void AFEControl::adc_read_stop()
 {
     m_timer_adc->stop();
-    m_timer_adc_transmitt->stop();
 
     memset((void *)adc_data_resp, 0x0, sizeof(adc_data_resp));
 

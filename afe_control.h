@@ -4,8 +4,8 @@
 #include <QVector>
 #include <QTimer>
 #include <QSocketNotifier>
-#include "devices/spi_bridge/prolific/pl23d3.h"
-#include "devices/dac/dac8562/dac8562.h"
+#include "devices/spi_bridge/pl23d3.h"
+#include "devices/dac/dac8562.h"
 #include "devices/adc/ads8866.h"
 #include "jsondatahandle.h"
 #include "common.h"
@@ -45,7 +45,7 @@ public Q_SLOTS:
     qint32 dac_out(DAC_CH, float);
     qint32 adc_read();
     void adc_read_ready();
-    void adc_data_transmitt();
+//  void adc_data_transmitt();
     void dac_stop();
     void adc_read_stop();
     void cmd_from_TcpSocket(Coding_Channel_Ctl);
@@ -58,7 +58,8 @@ private:
     ads8866 *m_adc;
     quint8 spi_read_buf[64]= {0x0,};
 
-    QTimer *m_timer_adc, *m_timer_adc_transmitt, *m_timer_notice;
+//    QTimer *m_timer_adc, *m_timer_adc_transmitt, *m_timer_notice;
+    QTimer *m_timer_adc, *m_timer_notice;
 
     QVector<quint16> adc_rawdata;           //save 1,200
     QVector<quint16> adc_average;           //save 40

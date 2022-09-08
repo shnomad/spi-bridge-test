@@ -23,8 +23,8 @@ SOURCES += \
         afe_control.cpp \
         gpiocontrol.cpp \
         common.cpp \
-        devices/spi_bridge/prolific/pl23d3.cpp \
-        devices/dac/dac8562/dac8562.cpp \
+        devices/spi_bridge/pl23d3.cpp \
+        devices/dac/dac8562.cpp \
         devices/adc/ads8866.cpp \
         tcpsocketrw.cpp
 
@@ -36,8 +36,8 @@ HEADERS += \
         jsondatahandle.h \
         gpiocontrol.h \
         common.h \
-        devices/spi_bridge/prolific/pl23d3.h \
-        devices/dac/dac8562/dac8562.h \
+        devices/spi_bridge/pl23d3.h \
+        devices/dac/dac8562.h \
         devices/adc/ads8866.h \
         tcpsocketrw.h
 
