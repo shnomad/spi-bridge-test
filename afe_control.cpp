@@ -78,8 +78,8 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
           });
 
     m_timer_read_adc_delay->setSingleShot(true);
-    m_timer_read_adc_delay->setInterval(0);
-    /*End of ADS1120 Implementation*/
+    m_timer_read_adc_delay->setInterval(1);
+
 #endif
     resp_to_json = new jsonDataHandle;
 
@@ -138,8 +138,11 @@ qint32 AFEControl::adc_init()
     //SET GAIN, Conversion Mode
      result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->setConversionMode(0), 0x2);
 
-    //SET Data Rate, OP Mode
-     result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->setOpMode(0), 0x2);
+    //SET Data Rate
+     result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->setDataRate(6), 0x2);
+
+    //SET OP Mode
+     result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->setOpMode(2), 0x2);
 
     //SET Reference Voltage
     result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->setVoltageRef(1), 0x2);
@@ -179,8 +182,6 @@ qint32 AFEControl::adc_read()
     {
         drdy_pin = m_usb_spi->GPIO6B_Get_Val(hid_fd);
     }
-
-    QThread::usleep(20);
 
     m_timer_read_adc_delay->start();
 
@@ -349,6 +350,14 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
                 adc_value |= spi_read_buf[1] << 8;
                 adc_value |= spi_read_buf[2];
 
+#ifdef _USE_ADC_ADS1120_
+                if(adc_value == 0)
+                {
+                    adc_init();
+                    goto adc_start_jump;
+                }
+#endif
+
                 adc_rawdata.append(adc_value);
 
                 read_adc_count++;
@@ -362,6 +371,9 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
 #endif
             adc_value = 0;
 
+#ifdef _USE_ADC_ADS1120_
+            adc_start_jump:
+#endif
             m_timer_adc->start();
        }
        else
