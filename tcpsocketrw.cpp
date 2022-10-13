@@ -202,7 +202,7 @@ void TcpSocketRW::readyRead()
     else
     {
 
-    /* TCP Socket 15Channel Dummy Test */
+    /* TCP Socket 15 Channel Dummy Test */
        quint16 *arg1, *arg2 = nullptr;
        tcp_coding_ch_ctl_tmp = json_to_cmd->parse(QByteArray(m_readData));
 

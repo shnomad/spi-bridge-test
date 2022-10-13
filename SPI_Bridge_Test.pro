@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         coding_channel.cpp \
+        devices/temperature/ds18b20.cpp \
         jsondatahandle.cpp \
         main.cpp\
         controller.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
         devices/spi_bridge/pl23d3.cpp \
         devices/dac/dac8562.cpp \
         devices/adc/ads8866.cpp \
+        devices/adc/ads1120.cpp \
         tcpsocketrw.cpp
 
 HEADERS += \
@@ -33,12 +35,14 @@ HEADERS += \
         coding_channel.h \
         controller.h \
         afe_control.h \
+        devices/temperature/ds18b20.h \
         jsondatahandle.h \
         gpiocontrol.h \
         common.h \
         devices/spi_bridge/pl23d3.h \
         devices/dac/dac8562.h \
         devices/adc/ads8866.h \
+        devices/adc/ads1120.h \
         tcpsocketrw.h
 
 INCLUDEPATH +=/opt/debian_imx8mm-var-dart/qt5/sysroot/usr/local/include \

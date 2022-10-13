@@ -1,8 +1,9 @@
-
 #include "dac8562.h"
 
+
+//dac8562::dac8562(int fd, QObject *parent) : QObject(parent)
 dac8562::dac8562(QObject *parent) : QObject(parent)
-{
+{      
  //   initialize();
 }
 
@@ -60,14 +61,6 @@ quint16 dac8562::Voltage_Convert(float voltage)
 
     return _D_;
 }
-
-#if 0
-void dac8562::writeVoltage(float input)
-{
-    writeA(input);
-    writeB(input);
-}
-#endif
 
 dac8562::~dac8562()
 {

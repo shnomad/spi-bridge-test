@@ -98,7 +98,7 @@ bool GpioControl::readValue( int pinNumber, bool &value )
 
   result = readFromGPIOFile( path, data );
 
-  if ( result )
+  if (result )
     value = (data == "1");
 
   return result;

@@ -36,7 +36,8 @@ class dac8562 : public QObject
 {
     Q_OBJECT
 public:
-    explicit dac8562(QObject *parent = nullptr);
+     explicit dac8562(QObject *parent = nullptr);
+//    explicit dac8562(int, QObject *parent = nullptr);
     ~dac8562();    
     void initialize();           
     quint8 *DAC_WR_REG(quint8 cmd_byte, quint16 data_byte);
@@ -54,8 +55,8 @@ signals:
 public slots:
 
 private:    
-
     quint8 cmd_buffer[3];
+    int spi_fd;
 };
 
 #endif // DAC8562_H
