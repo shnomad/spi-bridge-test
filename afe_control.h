@@ -8,18 +8,28 @@
 #include "devices/dac/dac8562.h"
 #include "devices/adc/ads8866.h"
 #include "devices/adc/ads1120.h"
+#include "devices/adc/ads130e08.h"
 #include "jsondatahandle.h"
 #include "common.h"
 
-#define _USE_ADC_ADS1120_ 1
+//#define _USE_ADC_ADS1120_
+//#define _USE_ADC_ADS8866_
+#define _USE_ADC_ADS130E08_
 
+class GpioSysFs;
 class pl23d3;
 class dac8562;
 
-#ifndef _USE_ADC_ADS1120_
+#ifdef _USE_ADC_ADS8866_
 class ads8866;
-#else
+#endif
+
+#ifdef _USE_ADC_ADS1120_
 class ads1120;
+#endif
+
+#ifdef _USE_ADC_ADS130E08_
+class ads130e08;
 #endif
 
 class jsonDataHandle;
@@ -70,10 +80,16 @@ private:
     pl23d3 *m_usb_spi;
     dac8562 *m_dac;
 
-#ifndef _USE_ADC_ADS1120_
-  ads8866 *m_adc;
-#else
-  ads1120 *m_adc;
+#ifdef _USE_ADC_ADS1120_
+    ads1120 *m_adc;
+#endif
+
+#ifdef _USE_ADC_ADS8866_
+    ads8866 *m_adc;
+#endif
+
+#ifdef _USE_ADC_ADS130E08_
+    ads130e08 *m_adc;
 #endif
 
     quint8 spi_read_buf[64]= {0x0,};
@@ -96,6 +112,13 @@ private:
     quint8 drdy_pin=1;
 
     jsonDataHandle *resp_to_json;
+
+#ifdef _USE_ADC_ADS130E08_
+    QSocketNotifier *drdy_notify;
+    GpioSysFs *ads130e08_rdry;
+    int drdy_fd;
+    bool adc_capture_start=false;
+#endif
 };
 
 #endif // AFECONTROL_H

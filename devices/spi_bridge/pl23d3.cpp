@@ -194,7 +194,7 @@ void  pl23d3::GPIO6B_Set_Direction(int fd, GPIO_DIR dir)
 
         feature_report_buf[0] = 0x80;
         feature_report_buf[1] = 0x05;
-        feature_report_buf[0] = 0x40;
+        feature_report_buf[2] = 0x40;
 
         result = ioctl(fd, HIDIOCSFEATURE(3), feature_report_buf);      //6
 }
@@ -203,11 +203,15 @@ void  pl23d3::GPIO6B_Set_OutVal(int fd, GPIO_OUT_VAL value)
 {
      qint32 result=0;
 
-    feature_report_buf[0] = 0x81;
-    feature_report_buf[1] = 0x00;
-    feature_report_buf[2] = 0x01;
+    feature_report_buf[0] = 0x81;    
+    feature_report_buf[1] = 0x01;
 
-    result = ioctl(fd, HIDIOCSFEATURE(3), feature_report_buf);
+    result = ioctl(fd, HIDIOCSFEATURE(2), feature_report_buf);
+
+    feature_report_buf[0] = 0x81;
+    feature_report_buf[1] = 0x01;
+
+    result = ioctl(fd, HIDIOCGFEATURE(2), feature_report_buf);
 
     feature_report_buf[0] = 0x80;
     feature_report_buf[1] = 0x01;

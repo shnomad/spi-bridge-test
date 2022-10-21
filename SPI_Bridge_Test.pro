@@ -17,12 +17,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         coding_channel.cpp \
-        devices/temperature/ds18b20.cpp \
+#       devices/temperature/ds18b20.cpp \
+    devices/adc/ads130e08.cpp \
+        gpiosysfs.cpp \
         jsondatahandle.cpp \
         main.cpp\
         controller.cpp \
         afe_control.cpp \
-        gpiocontrol.cpp \
+#       gpiocontrol.cpp \
         common.cpp \
         devices/spi_bridge/pl23d3.cpp \
         devices/dac/dac8562.cpp \
@@ -35,9 +37,11 @@ HEADERS += \
         coding_channel.h \
         controller.h \
         afe_control.h \
-        devices/temperature/ds18b20.h \
+#       devices/temperature/ds18b20.h \
+    devices/adc/ads130e08.h \
+        gpiosysfs.h \
         jsondatahandle.h \
-        gpiocontrol.h \
+#       gpiocontrol.h \
         common.h \
         devices/spi_bridge/pl23d3.h \
         devices/dac/dac8562.h \

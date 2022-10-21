@@ -1,4 +1,5 @@
 #include "afe_control.h"
+#include "gpiosysfs.h"
 #include <bits/stdc++.h>
 #include <algorithm>
 
@@ -7,10 +8,32 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
     m_usb_spi = new pl23d3;
     m_dac = new dac8562;
 
-#ifndef _USE_ADC_ADS1120_
-    m_adc = new ads8866;
-#else
+#ifdef _USE_ADC_ADS1120_
     m_adc = new ads1120;
+#endif
+
+#ifdef _USE_ADC_ADS8866_
+    m_adc = new ads8866;
+#endif
+
+#ifdef _USE_ADC_ADS130E08_
+    m_adc = new ads130e08;
+
+    adc_init();
+    ads130e08_rdry = new  GpioSysFs(GpioSysFs::GPIO_BANK::BANK_3, 20);
+
+    ads130e08_rdry->gpio_export();
+    ads130e08_rdry->gpio_set_dir(GpioSysFs::GPIO_DIR::SET_IN);
+    ads130e08_rdry->gpio_set_edge("falling");
+
+    drdy_fd = ads130e08_rdry->gpio_fd_open();
+    drdy_notify = new QSocketNotifier(drdy_fd, QSocketNotifier::Exception);
+    drdy_notify->setEnabled(false);
+
+    connect(drdy_notify, SIGNAL(activated(int)), this, SLOT(adc_read_ready()));
+
+//  drdy_notify->setEnabled(true);
+
 #endif
 
     m_timer_adc = new QTimer;
@@ -33,17 +56,30 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
 
     dac_init();
 
-#ifndef _USE_ADC_ADS1120_
+    dac_out(AFEControl::DAC_CH::CH_A, 600.0f);
+    dac_out(AFEControl::DAC_CH::CH_B, 500.0f);
+
+
+#ifdef _USE_ADC_ADS8866_
     /* Socket notifier for SPI read interrupt*/
-     m_notify_hid = new QSocketNotifier(hid_fd, QSocketNotifier::Read, this);          //ADS8866
-     connect(m_notify_hid, SIGNAL(activated(int)), this, SLOT(adc_read_ready()));      //ADS8866
-     m_notify_hid->setEnabled(true);                                                   //ADS8866
-#else
+     m_notify_hid = new QSocketNotifier(hid_fd, QSocketNotifier::Read, this);
+     connect(m_notify_hid, SIGNAL(activated(int)), this, SLOT(adc_read_ready()));
+     m_notify_hid->setEnabled(true);
+#endif
+
+#ifdef _USE_ADC_ADS1120_
     /* Settings for ADS1120, Set DRDY Pin*/
     m_usb_spi->GPIO6B_Set_Direction(hid_fd, pl23d3::GPIO_DIR::GPIO_IN);
-    adc_init();
+    adc_init();    
     connect(this, SIGNAL(sig_read_adc_delay_complete()), this, SLOT(adc_read_ready()));
     /* End of Settings for ADS1120*/
+#endif
+
+#ifdef _USE_ADC_ADS130E08_
+    m_usb_spi->GPIO6B_Set_Direction(hid_fd, pl23d3::GPIO_DIR::GPIO_OUT);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
 #endif
 
     /* read ADC started by timer*/
@@ -73,7 +109,6 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
     connect(m_timer_read_adc_delay, &QTimer::timeout,[=]()
           {
                   m_usb_spi->SPI_Single_Read(hid_fd, pl23d3::CS_1);
-
                   emit sig_read_adc_delay_complete();
           });
 
@@ -83,7 +118,7 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
 #endif
     resp_to_json = new jsonDataHandle;
 
-//  m_timer_adc->start();
+    adc_read_start();
 //  m_timer_notice->start();
 }
 
@@ -155,28 +190,57 @@ qint32 AFEControl::adc_init()
 
 #endif
 
+#ifdef _USE_ADC_ADS130E08_
+    //RESET
+    result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->reset(), 0x1);
+
+    //STOP RDATAC
+    result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->sdatac(), 0x1);
+
+#endif
+
     return result;
 }
 
 void AFEControl::adc_read_start()
 {
+
     read_adc_count =0;
 
-#ifndef _USE_ADC_ADS1120_
+#ifdef _USE_ADC_ADS8866_
     m_notify_hid->setEnabled(true);
 #endif
 
     m_timer_adc->start();
+
+#ifdef _USE_ADC_ADS1120_
+    m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->startSync(), 0x1);       //ADS1120
+#endif
+
 }
 
 qint32 AFEControl::adc_read()
 {
     qint32 result;
 
-#ifndef _USE_ADC_ADS1120_
-    result = m_usb_spi->SPI_Single_Read(hid_fd, pl23d3::CS_1);                                 //ADS8866
-#else
-    result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->startSync(), 0x1);       //ADS1120
+#ifdef _USE_ADC_ADS130E08_
+    adc_capture_start=true;
+    drdy_notify->setEnabled(true);
+
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+
+    m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->start(), 0x1);
+
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+#endif
+
+#ifdef _USE_ADC_ADS8866_
+    result = m_usb_spi->SPI_Single_Read(hid_fd, pl23d3::CS_1);
+#endif
+
+#ifdef _USE_ADC_ADS1120_
+   result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->startSync(), 0x1);
 
     while(drdy_pin)
     {
@@ -184,17 +248,34 @@ qint32 AFEControl::adc_read()
     }
 
     m_timer_read_adc_delay->start();
-
 #endif
     return result;
 }
 
 void AFEControl::adc_read_ready()
 {
-
 #if 1
-          adc_data_calculate(10, 600);              //total loop, capture count for every loop
-//        adc_data_calculate(10, 1200);             //total loop, capture count for every loop
+
+#ifdef _USE_ADC_ADS130E08_
+        ads130e08_rdry->gpio_poll(drdy_fd, 100);
+#endif
+
+        if(adc_capture_start==true)
+        {
+#ifdef _USE_ADC_ADS130E08_
+           drdy_notify->setEnabled(false);
+
+           m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+           m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+
+           m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->rdata(), 0x1);
+           m_usb_spi->SPI_Single_Read(hid_fd, pl23d3::CS_1);
+
+           m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+#endif
+           adc_data_calculate(10, 600);              //total loop, capture count for every loop
+        }
+ //        adc_data_calculate(10, 1200);             //total loop, capture count for every loop
 
 #else
     qint32  result;
@@ -379,8 +460,8 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
        else
        {
 
-#ifndef _USE_ADC_ADS1120_
-           m_notify_hid->setEnabled(false);        //ADS8866
+#ifdef _USE_ADC_ADS8866_
+           m_notify_hid->setEnabled(false);
 #endif
             /* ADC min. max. value check */
             if(total_count_loop == 0)
