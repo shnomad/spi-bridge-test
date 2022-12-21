@@ -4,11 +4,12 @@
 #include <QObject>
 #include <QVector>
 #include "common.h"
+#include "mqtt.h"
 
-#define LocalPort_pre   60000
+#define LocalPort_pre  60000
 
 class AFEControl;
-class TcpSocketRW;
+//class TcpSocketRW;
 
 class coding_channel : public QObject
 {
@@ -26,13 +27,14 @@ public slots:
 private:
 
     AFEControl *m_afe_control;
-    TcpSocketRW *m_tcpsocket;
+//  TcpSocketRW *m_tcpsocket;
+    mqtt *m_ClientMqtt;
 
     Coding_Channel_Ctl m_coding_ch_ctl{};
     QVector <int *>afe_channel;
     volatile quint8 channel_number;
 
-   local_network_info *net_info;
+//  local_network_info *net_info;
 };
 
 #endif // CODING_CHANNEL_THREAD_H

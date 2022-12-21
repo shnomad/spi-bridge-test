@@ -1,5 +1,5 @@
 QT -= gui
-QT += core network
+QT += network mqtt
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
@@ -18,7 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         coding_channel.cpp \
 #       devices/temperature/ds18b20.cpp \
-    devices/adc/ads130e08.cpp \
+        devices/adc/ads130e08.cpp \
         gpiosysfs.cpp \
         jsondatahandle.cpp \
         main.cpp\
@@ -30,6 +30,7 @@ SOURCES += \
         devices/dac/dac8562.cpp \
         devices/adc/ads8866.cpp \
         devices/adc/ads1120.cpp \
+    mqtt.cpp \
         tcpsocketrw.cpp
 
 HEADERS += \
@@ -38,7 +39,7 @@ HEADERS += \
         controller.h \
         afe_control.h \
 #       devices/temperature/ds18b20.h \
-    devices/adc/ads130e08.h \
+        devices/adc/ads130e08.h \
         gpiosysfs.h \
         jsondatahandle.h \
 #       gpiocontrol.h \
@@ -47,6 +48,7 @@ HEADERS += \
         devices/dac/dac8562.h \
         devices/adc/ads8866.h \
         devices/adc/ads1120.h \
+    mqtt.h \
         tcpsocketrw.h
 
 INCLUDEPATH +=/opt/debian_imx8mm-var-dart/qt5/sysroot/usr/local/include \

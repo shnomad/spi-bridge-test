@@ -55,10 +55,10 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
     m_usb_spi->SPI_Master_Init(hid_fd);
 
     dac_init();
+    adc_init();
 
-    dac_out(AFEControl::DAC_CH::CH_A, 600.0f);
-    dac_out(AFEControl::DAC_CH::CH_B, 500.0f);
-
+//    dac_out(AFEControl::DAC_CH::CH_A, 500);
+//    dac_out(AFEControl::DAC_CH::CH_B, 500);
 
 #ifdef _USE_ADC_ADS8866_
     /* Socket notifier for SPI read interrupt*/
@@ -78,8 +78,8 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
 #ifdef _USE_ADC_ADS130E08_
     m_usb_spi->GPIO6B_Set_Direction(hid_fd, pl23d3::GPIO_DIR::GPIO_OUT);
     m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
-    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
-    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+//    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+//    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
 #endif
 
     /* read ADC started by timer*/
@@ -118,7 +118,7 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
 #endif
     resp_to_json = new jsonDataHandle;
 
-    adc_read_start();
+//  adc_read_start();
 //  m_timer_notice->start();
 }
 
@@ -164,7 +164,7 @@ qint32 AFEControl::dac_out(AFEControl::DAC_CH ch, float value)
 
 qint32 AFEControl::adc_init()
 {
-    qint32 result;
+    qint32 result;    
 
 #ifdef _USE_ADC_ADS1120_
     //RESET
@@ -191,11 +191,30 @@ qint32 AFEControl::adc_init()
 #endif
 
 #ifdef _USE_ADC_ADS130E08_
-    //RESET
-    result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->reset(), 0x1);
 
-    //STOP RDATAC
+    quint8 read_reg_cmd[2];
+
+    //RESET
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+    result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->reset(), 0x1);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+
+    //Read Register Test
+
+    read_reg_cmd[0] = 0x20;
+    read_reg_cmd[1] = 0x00;
+
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+    result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, read_reg_cmd, 0x2);
+    result = m_usb_spi->SPI_Single_Read(hid_fd,pl23d3::CS_1);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+
+
+    //STOP RDATAC   
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
     result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->sdatac(), 0x1);
+    m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
 
 #endif
 
@@ -260,21 +279,24 @@ void AFEControl::adc_read_ready()
         ads130e08_rdry->gpio_poll(drdy_fd, 100);
 #endif
 
+
+#ifdef _USE_ADC_ADS130E08_
+        drdy_notify->setEnabled(false);
+
+        m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+        m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
+
+        m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->rdata(), 0x1);
+        m_usb_spi->SPI_Single_Read(hid_fd, pl23d3::CS_1);
+
+        m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
+
         if(adc_capture_start==true)
         {
-#ifdef _USE_ADC_ADS130E08_
-           drdy_notify->setEnabled(false);
-
-           m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
-           m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_LOW);
-
-           m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_1, m_adc->rdata(), 0x1);
-           m_usb_spi->SPI_Single_Read(hid_fd, pl23d3::CS_1);
-
-           m_usb_spi->GPIO6B_Set_OutVal(hid_fd, pl23d3::GPIO_OUT_VAL::GPIO_OUT_HIGH);
-#endif
-           adc_data_calculate(10, 600);              //total loop, capture count for every loop
+            adc_data_calculate(10, 600);              //total loop, capture count for every loop
         }
+#endif
+           adc_data_calculate(10, 600);              //total loop, capture count for every loop        
  //        adc_data_calculate(10, 1200);             //total loop, capture count for every loop
 
 #else
@@ -444,8 +466,11 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
                 read_adc_count++;
             }
 
-      //    if(read_adc_count == 1 || read_adc_count == capture_count)
+        if(read_adc_count == 1 || read_adc_count == capture_count)
+        {
             Log()<<"["<< read_adc_count <<"]"<< " Read ADC Value :"<<  QString("%1").arg(adc_value, 0, 16);
+            Log()<< "Voltage :"<< (3000.f/65535.0f)*adc_value<<"mV";
+        }
 
 #ifdef _USE_ADC_ADS1120_
             Log()<<"voltage value :" << (3248/32767.0f)*adc_value <<"mV";
@@ -605,7 +630,7 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
                 dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);
 
-                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));                
+                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));
 
                 if(result >0)
                 {

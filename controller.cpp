@@ -16,7 +16,6 @@ Controller::Controller(QObject *parent) : QObject(parent)
           connect(m_pthread[thread_count], &QThread::finished, m_ch[thread_count], &QObject::deleteLater);
           m_pthread[thread_count]->start();
       }
-
 }
 
 Controller::~Controller()

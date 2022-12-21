@@ -13,8 +13,8 @@
 #include "common.h"
 
 //#define _USE_ADC_ADS1120_
-//#define _USE_ADC_ADS8866_
-#define _USE_ADC_ADS130E08_
+#define _USE_ADC_ADS8866_
+//#define _USE_ADC_ADS130E08_
 
 class GpioSysFs;
 class pl23d3;
