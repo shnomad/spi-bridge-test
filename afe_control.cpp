@@ -626,7 +626,8 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
             break;
 
-            case Coding_Channel_Ctl::CMD_DAC_OUT_WORK:
+//          case Coding_Channel_Ctl::CMD_DAC_OUT_WORK:
+            case Coding_Channel_Ctl::CMD_DAC_OUT:
 
                 dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);
 
@@ -642,13 +643,14 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
                 }
 
-                break;
+//            break;
 
-            case Coding_Channel_Ctl::CMD_DAC_CHECK_WORK:
+//            case Coding_Channel_Ctl::CMD_DAC_CHECK_WORK:
 
-                break;
+  //              break;
 
-            case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER:
+//            case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER:
+//            case Coding_Channel_Ctl::CMD_DAC_OUT:
 
                 dac_value[1] = m_ch_ctl.dac_value_b;
 
@@ -666,9 +668,9 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
                 break;
 
-            case Coding_Channel_Ctl::CMD_DAC_CHECK_COUNTER:
+//            case Coding_Channel_Ctl::CMD_DAC_CHECK_COUNTER:
 
-                break;
+ //              break;
 
             case Coding_Channel_Ctl::CMD_FW_CHECK:
 

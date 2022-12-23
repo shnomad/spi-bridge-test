@@ -85,17 +85,18 @@ Coding_Channel_Ctl jsonDataHandle::parse(QString message)
 
      tmp_ch_ctl.m_cmd = static_cast<Coding_Channel_Ctl::cmd>(status.toInt());
 
-     if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_WORK)
+//  if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_WORK)
+    if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT)
      {
             QJsonObject dac = jsonObj.value("DAC[mV]").toObject();
 
             QJsonValue dac_work =dac.value("Work");
 
             tmp_ch_ctl.dac_value_a = dac_work.toInt();
-     }
-      else if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER)
-     {
-            QJsonObject dac = jsonObj.value("DAC[mV]").toObject();
+//     }
+//      else if(tmp_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER)
+//     {
+//            QJsonObject dac = jsonObj.value("DAC[mV]").toObject();
 
             QJsonValue dac_counter =dac.value("Counter");
 
