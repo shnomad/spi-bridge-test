@@ -16,6 +16,10 @@ public:
     ~mqtt();
 
 signals:
+    void sig_read_from_socket(const QByteArray &data);
+    void sig_doconnect();
+//  void sig_connetion_status(socket_status);
+    void sig_cmd_to_afe(Coding_Channel_Ctl);
 
 public slots:
     void setClientPort(int p);

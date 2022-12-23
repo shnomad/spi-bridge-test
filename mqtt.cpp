@@ -6,9 +6,7 @@
 //mqtt::mqtt(QObject *parent) : QObject(parent)
 mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
 {
-//  client_id = "afe_ch_" + QString("%1").arg(id, 3, 10, QChar('0'));
-
-    client_id = "afe_ch_" + QString("%1").arg(n_ch, 3, 10, QChar('0'));
+    client_id = "CH_" + QString("%1").arg(n_ch, 3, 10, QChar('0'));
 
     QString hostname ="10.42.0.69";
     quint16 portnumber = 1883;
@@ -20,7 +18,7 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
     m_client->setKeepAlive(120);
 
     const QString willtopic = "cgms/codingjig/afe/connected/"+client_id;
-    QString willmsg ="0";
+    QString willmsg ="false";
 
     m_client->setWillTopic(willtopic);
     m_client->setWillMessage(willmsg.toStdString().c_str());
@@ -59,6 +57,20 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
                     + message
                     + QLatin1Char('\n');
         qDebug()<<client_id<<":"<<content;
+
+        mqtt_coding_ch_ctl = json_to_cmd->parse(message);
+
+        if(mqtt_coding_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_CHECK_AFE_CONNECTED)
+        {
+            pub_status_topic();
+        }
+        else
+        {
+            emit sig_cmd_to_afe(mqtt_coding_ch_ctl);
+        }
+
+//      emit sig_cmd_to_afe(json_to_cmd->parse(message));
+
     });
 
     connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
@@ -117,9 +129,10 @@ void mqtt::brokerConnected()
     qDebug()<<"Connected";
     qDebug()<<"client_id :"<<client_id;
 
-    pub_topic_status_timer->start();
+ // pub_topic_status_timer->start();
+    sub_topic_cmd_timer->start();
 
-//  on_buttonPublish_clicked(pub_topic_status + client_id, "TRUE", 1, false);
+// on_buttonPublish_clicked(pub_topic_status + client_id, "TRUE", 1, false);
 }
 
 bool mqtt::Publish(QString topic, QString msg, quint8 Qos, bool retain)
@@ -150,7 +163,7 @@ bool mqtt::Subscribe(QString topic)
 
 bool mqtt::pub_status_topic()
 {
-    if(Publish(pub_topic_status + client_id, "1", 1, false))
+    if(Publish(pub_topic_status + client_id, "true", 1, false))
     {
         qDebug()<<client_id<<" :pub_status_topic success";
 
