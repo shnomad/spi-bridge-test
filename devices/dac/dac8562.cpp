@@ -47,6 +47,16 @@ quint8 *dac8562::writeALL(float input)
     return outPutValue(CMD_UPDATE_ALL_DACS,Voltage_Convert(input));
 }
 
+quint8 * dac8562::writeA(quint16 input)
+{
+    return outPutValue(CMD_UPDATE_ALL_DACS,input);
+}
+
+quint8 * dac8562::writeB(quint16 input)
+{
+    return outPutValue(CMD_UPDATE_ALL_DACS,input);
+}
+
 quint16 dac8562::Voltage_Convert(float voltage)
 {
     quint16 _D_;

@@ -8,8 +8,8 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
 {
     client_id = "CH_" + QString("%1").arg(n_ch, 3, 10, QChar('0'));
 
- // QString hostname ="10.42.0.69";
-    QString hostname ="192.168.137.1";
+    QString hostname ="10.42.0.69";
+ // QString hostname ="192.168.137.1";
     quint16 portnumber = 1883;
 
     m_client = new QMqttClient(this);
@@ -130,7 +130,7 @@ void mqtt::brokerConnected()
     qDebug()<<"Connected";
     qDebug()<<"client_id :"<<client_id;
 
- // pub_topic_status_timer->start();
+    pub_topic_status_timer->start();
     sub_topic_cmd_timer->start();
 
 // on_buttonPublish_clicked(pub_topic_status + client_id, "TRUE", 1, false);

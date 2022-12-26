@@ -66,6 +66,7 @@ public slots:
 public Q_SLOTS:
     qint32 dac_init();
     qint32 dac_out(DAC_CH, float);
+    qint32 dac_out(DAC_CH, quint16);
     qint32 adc_init();
     qint32 adc_read();
     void adc_read_ready();

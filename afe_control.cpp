@@ -162,6 +162,25 @@ qint32 AFEControl::dac_out(AFEControl::DAC_CH ch, float value)
    return result;
 }
 
+qint32 AFEControl::dac_out(AFEControl::DAC_CH ch, quint16 dac_bit)
+{
+    /* DAC voltage out */
+    qint32 result;
+
+    if(ch == AFEControl::DAC_CH::CH_A)
+    {
+        result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_0, m_dac->writeA(dac_bit), 0x3);
+        afe_coding_ch_ctl.dac_value_a_r = dac_bit;
+    }
+    else if(ch == AFEControl::DAC_CH::CH_B)
+    {
+        result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_0, m_dac->writeB(dac_bit), 0x3);
+        afe_coding_ch_ctl.dac_value_b_r = dac_bit;
+    }
+
+    return result;
+}
+
 qint32 AFEControl::adc_init()
 {
     qint32 result;    
@@ -627,16 +646,16 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
             break;
 
 //          case Coding_Channel_Ctl::CMD_DAC_OUT_WORK:
-            case Coding_Channel_Ctl::CMD_DAC_OUT_VOLT:
+            case Coding_Channel_Ctl::CMD_DAC_OUT_WORK_VOLT:
 
-                dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);
+                dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);                
 
                 result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));
 
                 if(result >0)
                 {
                     arg1 = (quint16 *)&dac_value;
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_SUCCESS;
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
                 {
@@ -659,7 +678,7 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
                 if(result >0)
                 {
                     arg1 = (quint16 *)&dac_value;
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_SUCCESS;
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
                 {
@@ -668,7 +687,31 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
                 break;
 
-             case  Coding_Channel_Ctl::CMD_DAC_OUT_REG:
+             case  Coding_Channel_Ctl::CMD_DAC_OUT_WORK_BIT:
+
+                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<quint16>(m_ch_ctl.dac_value_a_r));
+
+                if(result >0)
+                {
+//                 arg1 = (quint16 *)&dac_value;
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+                }
+                else
+                {
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
+                }
+
+                result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<quint16>(m_ch_ctl.dac_value_b_r));
+
+                if(result >0)
+                {
+//                 arg1 = (quint16 *)&dac_value;
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+                }
+                else
+                {
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_FAIL;
+                }
 
              break;
 

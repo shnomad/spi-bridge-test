@@ -42,9 +42,16 @@ public:
     void initialize();           
     quint8 *DAC_WR_REG(quint8 cmd_byte, quint16 data_byte);
     quint8 *outPutValue(quint8 cmd_byte, quint16 input);
+
+    /*input voltage value*/
     quint8 * writeA(float input);
-    quint8 * writeB(float input);
+    quint8 * writeB(float input);    
     quint8 * writeALL(float input);
+
+    /*input bit value*/
+    quint8 * writeA(quint16 input);
+    quint8 * writeB(quint16 input);
+
     quint16 Voltage_Convert(float voltage);
 
  // void writeVoltage(float input);
