@@ -4,11 +4,12 @@
 #include <QObject>
 #include <QVector>
 #include "common.h"
+#include "afe_control.h"
 #include "mqtt.h"
 
 #define LocalPort_pre  60000
 
-class AFEControl;
+//class AFEControl;
 //class TcpSocketRW;
 
 class coding_channel : public QObject

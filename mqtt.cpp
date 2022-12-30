@@ -3,7 +3,6 @@
 #include <QDebug>
 #include "mqtt.h"
 
-//mqtt::mqtt(QObject *parent) : QObject(parent)
 mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
 {
     client_id = "CH_" + QString("%1").arg(n_ch, 3, 10, QChar('0'));
@@ -70,8 +69,6 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
             emit sig_cmd_to_afe(mqtt_coding_ch_ctl);
         }
 
-//      emit sig_cmd_to_afe(json_to_cmd->parse(message));
-
     });
 
     connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
@@ -85,7 +82,6 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
 
     connect_broker_timer->start();
 
-//  ConnectBroker();
 }
 
 void mqtt::setClientPort(int p)
@@ -132,8 +128,6 @@ void mqtt::brokerConnected()
 
     pub_topic_status_timer->start();
     sub_topic_cmd_timer->start();
-
-// on_buttonPublish_clicked(pub_topic_status + client_id, "TRUE", 1, false);
 }
 
 bool mqtt::Publish(QString topic, QString msg, quint8 Qos, bool retain)

@@ -3,7 +3,7 @@
 #include <bits/stdc++.h>
 #include <algorithm>
 
-AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QObject *parent) : QObject(parent)
+AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl m_ch_ctl, QObject *parent) : QObject(parent)
 {    
     m_usb_spi = new pl23d3;
     m_dac = new dac8562;
@@ -50,15 +50,16 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
         exit(0);
     }
 
-    afe_coding_ch_ctl.m_ch = ch;
+//  afe_coding_ch_ctl.m_ch = ch;
+    afe_coding_ch_ctl.m_ch = m_ch_ctl.m_ch;
 
     m_usb_spi->SPI_Master_Init(hid_fd);
 
     dac_init();
     adc_init();
 
-//    dac_out(AFEControl::DAC_CH::CH_A, 500);
-//    dac_out(AFEControl::DAC_CH::CH_B, 500);
+//  dac_out(AFEControl::DAC_CH::CH_A, 500);
+//  dac_out(AFEControl::DAC_CH::CH_B, 500);
 
 #ifdef _USE_ADC_ADS8866_
     /* Socket notifier for SPI read interrupt*/
@@ -116,7 +117,13 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl::channel ch, QO
     m_timer_read_adc_delay->setInterval(1);
 
 #endif
+
+//  resp_to_json = new jsonDataHandle(static_cast<quint8>(afe_coding_ch_ctl.m_ch));
     resp_to_json = new jsonDataHandle;
+
+    /*check DAC/ADC config.txt file*/
+
+    check_config(m_ch_ctl.board_number);
 
 //  adc_read_start();
 //  m_timer_notice->start();
@@ -592,7 +599,8 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
                   adc_data_resp[11] = adc_min;
 
                   afe_coding_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE;
-                  emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, dac_value, adc_data_resp));
+//                emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, dac_value, adc_data_resp));
+                  emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, adc_data_resp));
 
                   memset((void *)adc_data_resp, 0x0, sizeof(adc_data_resp));
 
@@ -633,7 +641,7 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
             case Coding_Channel_Ctl::CMD_START_MEASURE:
 
                  adc_read_start();
-                 arg1 = (quint16 *)&dac_value;
+//               arg1 = (quint16 *)&dac_value;
                  m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_START_MEASURE_SUCCESS;
 
             break;
@@ -645,7 +653,6 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
             break;
 
-//          case Coding_Channel_Ctl::CMD_DAC_OUT_WORK:
             case Coding_Channel_Ctl::CMD_DAC_OUT_WORK_VOLT:
 
                 dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);                
@@ -653,8 +660,7 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
                 result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));
 
                 if(result >0)
-                {
-                    arg1 = (quint16 *)&dac_value;
+                {                    
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
@@ -662,14 +668,9 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
                 }
 
-//            break;
+             break;
 
-//            case Coding_Channel_Ctl::CMD_DAC_CHECK_WORK:
-
-  //              break;
-
-//            case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER:
-//            case Coding_Channel_Ctl::CMD_DAC_OUT:
+            case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER_VOLT:
 
                 dac_value[1] = m_ch_ctl.dac_value_b;
 
@@ -677,8 +678,7 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
                 if(result >0)
                 {
-                    arg1 = (quint16 *)&dac_value;
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_SUCCESS;
                 }
                 else
                 {
@@ -693,7 +693,6 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
                 if(result >0)
                 {
-//                 arg1 = (quint16 *)&dac_value;
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
@@ -701,11 +700,14 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
                 }
 
+                break;
+
+             case  Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER_BIT:
+
                 result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<quint16>(m_ch_ctl.dac_value_b_r));
 
                 if(result >0)
                 {
-//                 arg1 = (quint16 *)&dac_value;
                     m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
@@ -715,9 +717,13 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
 
              break;
 
-//            case Coding_Channel_Ctl::CMD_DAC_CHECK_COUNTER:
+             case  Coding_Channel_Ctl::CMD_DAC_VOLT_CHECK:
 
- //              break;
+             break;
+
+             case  Coding_Channel_Ctl::CMD_DAC_BIT_CHECK:
+
+             break;
 
             case Coding_Channel_Ctl::CMD_FW_CHECK:
 
@@ -740,8 +746,25 @@ void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
                 break;
         }    
 
-        m_ch_ctl.m_ch = afe_coding_ch_ctl.m_ch;
-        emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg1, arg2));
+      m_ch_ctl.m_ch = afe_coding_ch_ctl.m_ch;
+//    emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg1, arg2));
+      resp_to_json->mutex.lock();
+           emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg2));
+      resp_to_json->mutex.unlock();
+}
+
+void AFEControl::check_config(quint8 board_number)
+{
+    QFile file;
+
+    file.setFileName("/home/user/config.txt");
+
+    resp_to_json->mutex.lock();
+
+    if(!file.exists())
+        resp_to_json->Create(board_number);
+
+    resp_to_json->mutex.unlock();
 }
 
 AFEControl::~AFEControl()

@@ -45,9 +45,8 @@ public:
        CH_ALL
     };
 
-    explicit AFEControl(QString, Coding_Channel_Ctl::channel, QObject *parent = nullptr);
+      explicit AFEControl(QString, Coding_Channel_Ctl, QObject *parent = nullptr);
         ~AFEControl();    
-
 signals:
 
 Q_SIGNALS:
@@ -74,8 +73,9 @@ public Q_SLOTS:
     void adc_read_stop();
     void adc_data_calculate(quint32, quint32);
     void cmd_from_TcpSocket(Coding_Channel_Ctl);
+    void check_config(quint8);
 
-private:
+private:    
     int hid_fd;
     QSocketNotifier *m_notify_hid;
     pl23d3 *m_usb_spi;

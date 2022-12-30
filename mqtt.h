@@ -11,14 +11,12 @@ class mqtt : public QObject
 {
     Q_OBJECT
 public:
-    //explicit mqtt(QObject *parent = nullptr);
     explicit mqtt(Coding_Channel_Ctl::channel, QObject *parent = nullptr);
     ~mqtt();
 
 signals:
     void sig_read_from_socket(const QByteArray &data);
     void sig_doconnect();
-//  void sig_connetion_status(socket_status);
     void sig_cmd_to_afe(Coding_Channel_Ctl);
 
 public slots:

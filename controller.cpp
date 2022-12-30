@@ -1,6 +1,5 @@
 #include <QtDebug>
 #include "controller.h"
-//#include "coding_channel.h"
 #include "devices/adc/ads1120.h"
 //#include "devices/temperature/ds18b20.h"
 //#include "gpiocontrol.h"
