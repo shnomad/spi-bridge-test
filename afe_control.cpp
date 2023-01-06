@@ -600,6 +600,8 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
 
                   afe_coding_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE;
 //                emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, dac_value, adc_data_resp));
+
+
                   emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, adc_data_resp));
 
                   memset((void *)adc_data_resp, 0x0, sizeof(adc_data_resp));

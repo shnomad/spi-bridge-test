@@ -5,15 +5,15 @@ const QString jsonDataHandle::filename = "/home/user/config.txt";
 
 jsonDataHandle::jsonDataHandle(QObject *parent) : QObject(parent)
 {                    
-
+    memcpy((void *)total_channel_1d,(void *)total_channel,sizeof(total_channel));
 }
                                                                             //ADC
 QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg2)
 {
-     QJsonObject mainObject, ADC, DAC;
+     QJsonObject mainObject, ADC, DAC, CAL;
      QString adc_data_number = "data";
 
-     /* Insert single datas first */
+     /* Insert single data first */
       mainObject.insert("channel", ch_ctl_resp.m_ch);
       mainObject.insert("response", ch_ctl_resp.m_resp);
       mainObject.insert("BuildDate",build_date);
@@ -22,28 +22,79 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
     if((ch_ctl_resp.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_WORK_VOLT) || (ch_ctl_resp.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER_VOLT) || \
         (ch_ctl_resp.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_WORK_BIT) || (ch_ctl_resp.m_cmd == Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER_BIT) )
     {
-        DAC.insert("Work[mV]","");
-        DAC.insert("Counter[mV]","");
-        DAC.insert("Work[bit]","");
-        DAC.insert("Counter[bit]","");
+        QFile file;
+
+        /*check config file and read saved parameters*/
+        if(file.exists(filename))
+        {
+            QJsonDocument jsonDoc_from_config = Open(false);
+            QJsonObject mainObject_from_config = jsonDoc_from_config.object();
+            QJsonObject ch_param_from_config = mainObject_from_config[total_channel_1d[(ch_ctl_resp.m_ch-1)]].toObject();
+            QJsonObject dac_val_from_config = ch_param_from_config["DAC"].toObject();
+
+            DAC.insert("Work[mV]",dac_val_from_config["Work[mV]"]);
+            DAC.insert("Counter[mV]",dac_val_from_config["Counter[mV]"]);
+            DAC.insert("Work[bit]",dac_val_from_config["Work[bit]"]);
+            DAC.insert("Counter[bit]",dac_val_from_config["Counter[bit]"]);
+
+           /*parsing */
+//          QJsonDocument jsonDoc(DAC);
+//          QString encode_data = QString::fromUtf8(jsonDoc.toJson());
+        }
+        else
+        {
+            DAC.insert("Work[mV]","");
+            DAC.insert("Counter[mV]","");
+            DAC.insert("Work[bit]","");
+            DAC.insert("Counter[bit]","");
+        }
+
+       mainObject.insert("DAC", DAC);
+
     }
-
-    mainObject.insert("DAC", DAC);
-
-    /* RESP_MEASURED_ADC_VALUE */
-   if(ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE)
-   {
+    else if(ch_ctl_resp.m_resp == Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE)
+    {
        for(quint8 seq=0; seq<10; seq++)
        {
            adc_data_number += QString::number(seq, 10);
-//         ADC.insert(adc_data_number, arg[seq]);
            ADC.insert(adc_data_number, QString::number(arg2[seq], 16));
            adc_data_number = "data";
        }
-//         ADC.insert("MaxData",arg[10]);
-//         ADC.insert("MinData",arg[11]);
            ADC.insert("MaxData",QString::number(arg2[10], 16));
            ADC.insert("MinData",QString::number(arg2[11], 16));
+
+           QFile file;
+
+           if(file.exists(filename))
+           {
+               QJsonDocument jsonDoc_from_config = Open(false);
+               QJsonObject mainObject_from_config = jsonDoc_from_config.object();
+               QJsonObject ch_param_from_config = mainObject_from_config[total_channel_1d[(ch_ctl_resp.m_ch-1)]].toObject();
+               QJsonObject cal_val_from_config = ch_param_from_config["CAL"].toObject();
+               QJsonObject dac_val_from_config = ch_param_from_config["DAC"].toObject();
+
+               CAL.insert("slope", cal_val_from_config["slope"]);
+               CAL.insert("intercept", cal_val_from_config["intercept"]);
+
+               DAC.insert("Work[mV]", dac_val_from_config["Work[mV]"]);
+               DAC.insert("Counter[mV]", dac_val_from_config["Counter[mV]"]);
+               DAC.insert("Work[bit]", dac_val_from_config["Work[bit]"]);
+               DAC.insert("Counter[bit]",dac_val_from_config["Counter[bit]"]);
+           }
+           else
+           {
+               CAL.insert("slope", "");
+               CAL.insert("intercept","");
+
+               DAC.insert("Work[mV]","");
+               DAC.insert("Counter[mV]","");
+               DAC.insert("Work[bit]","");
+               DAC.insert("Counter[bit]","");
+           }
+
+       mainObject.insert("DAC", DAC);
+       mainObject.insert("ADC", ADC);
+       mainObject.insert("CAL", CAL);
    }
    else
    {
@@ -55,9 +106,15 @@ QString jsonDataHandle::encode_resp(Coding_Channel_Ctl ch_ctl_resp, quint16 *arg
      }
          ADC.insert("MaxData","");
          ADC.insert("MinData","");
-    }
 
-    mainObject.insert("ADC", ADC);
+         DAC.insert("Work[mV]","");
+         DAC.insert("Counter[mV]","");
+         DAC.insert("Work[bit]","");
+         DAC.insert("Counter[bit]","");
+
+         CAL.insert("slope", "");
+         CAL.insert("intercept","");
+    }
 
     QJsonDocument jsonDoc(mainObject);
 
@@ -217,7 +274,6 @@ bool jsonDataHandle::Update(QString channel, QString key_, quint16 val_, update_
         QJsonObject dac_tmp = ch_tmp["DAC"].toObject();
 
         dac_tmp[key_] = val_;
-
         ch_tmp["DAC"]=dac_tmp;
 
     }
@@ -226,7 +282,6 @@ bool jsonDataHandle::Update(QString channel, QString key_, quint16 val_, update_
        QJsonObject cal_tmp = ch_tmp["Calibration"].toObject();
 
        cal_tmp[key_] = val_;
-
        ch_tmp["Calibration"]=cal_tmp;
     }
 

@@ -18,8 +18,8 @@ class jsonDataHandle : public QObject
     static const QString filename;
 
 public:
-     explicit jsonDataHandle(QObject *parent = nullptr);
-//   explicit jsonDataHandle(quint8, QObject *parent = nullptr);
+    explicit jsonDataHandle(QObject *parent = nullptr);
+//    explicit jsonDataHandle(quint8, QObject *parent = nullptr);
     ~jsonDataHandle();
 
     QString encode_resp(Coding_Channel_Ctl, quint16 *);
@@ -45,6 +45,7 @@ private:
     /*set&get config.json*/    
     QJsonDocument Open(const bool is_write = false);
     bool Update(QString channel,QString key_, quint16 value_, update_sel);
+    quint8 board_number;
 
     const QString total_channel[12][15] ={\
              {"CH_001", "CH_002", "CH_003", "CH_004", "CH_005", "CH_006", "CH_007", "CH_008", "CH_009", "CH_010", "CH_011", "CH_012", "CH_013", "CH_014", "CH_015"}, \
@@ -60,6 +61,9 @@ private:
              {"CH_151", "CH_152", "CH_153", "CH_154", "CH_155", "CH_156", "CH_157", "CH_158", "CH_159", "CH_160", "CH_161", "CH_162", "CH_163", "CH_164", "CH_165"}, \
              {"CH_166", "CH_167", "CH_168", "CH_169", "CH_170", "CH_171", "CH_172", "CH_173", "CH_174", "CH_175", "CH_176", "CH_177", "CH_178", "CH_179", "CH_180"} \
     };
+
+    const QString total_channel_1d[180];
+
 };
 
 #endif // JSONDATAHANDLE_H
