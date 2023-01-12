@@ -11,13 +11,14 @@ class mqtt : public QObject
 {
     Q_OBJECT
 public:
-    explicit mqtt(Coding_Channel_Ctl::channel, QObject *parent = nullptr);
+//    explicit mqtt(Coding_Channel_Ctl::channel, QObject *parent = nullptr);
+     explicit mqtt(sys_cmd_resp *, QObject *parent = nullptr);
     ~mqtt();
 
 signals:
     void sig_read_from_socket(const QByteArray &data);
     void sig_doconnect();
-    void sig_cmd_to_afe(Coding_Channel_Ctl);
+    void sig_cmd_to_afe(sys_cmd_resp *);
 
 public slots:
     void setClientPort(int p);
@@ -48,9 +49,9 @@ private:
     QTimer *connect_broker_timer, *pub_topic_status_timer, *pub_topic_resp_timer, *sub_topic_cmd_timer;
 
     /* Coding channel control parameter */
-    Coding_Channel_Ctl mqtt_coding_ch_ctl{}, mqtt_coding_ch_ctl_tmp{};
+//    Coding_Channel_Ctl mqtt_coding_ch_ctl{}, mqtt_coding_ch_ctl_tmp{};
     jsonDataHandle *json_to_cmd;
-
+    sys_cmd_resp *cmd_from_host;
 };
 
 #endif // MQTT_H

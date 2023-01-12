@@ -11,6 +11,7 @@
 #include "devices/adc/ads130e08.h"
 #include "jsondatahandle.h"
 #include "common.h"
+#include "mqtt.h"
 
 //#define _USE_ADC_ADS1120_
 #define _USE_ADC_ADS8866_
@@ -45,12 +46,13 @@ public:
        CH_ALL
     };
 
-      explicit AFEControl(QString, Coding_Channel_Ctl, QObject *parent = nullptr);
+        explicit AFEControl(QString, sys_cmd_resp*, QObject *parent = nullptr);
         ~AFEControl();    
+
 signals:
 
 Q_SIGNALS:
-    void sig_cmd_to_afe(Coding_Channel_Ctl);
+    //void sig_cmd_to_afe(Coding_Channel_Ctl);
     void sig_resp_from_afe(QString);
     void sig_read_adc_manual();
     void sig_stop_read_adc_manual();
@@ -72,15 +74,13 @@ public Q_SLOTS:
     void dac_stop();
     void adc_read_stop();
     void adc_data_calculate(quint32, quint32);
-    void cmd_from_TcpSocket(Coding_Channel_Ctl);
-    void check_config(quint8);
+    void cmd_from_TcpSocket(sys_cmd_resp *);    
 
 private:    
     int hid_fd;
     QSocketNotifier *m_notify_hid;
     pl23d3 *m_usb_spi;
-    dac8562 *m_dac;
-
+    dac8562 *m_dac;        
 #ifdef _USE_ADC_ADS1120_
     ads1120 *m_adc;
 #endif
@@ -106,13 +106,13 @@ private:
     volatile quint32 read_adc_count =0;
     volatile quint16 adc_data_final = 0;
     quint16 adc_data_resp[12]= {0x0,};
-    quint16 dac_value[2]={0x0,};
+//  quint16 dac_value[2]={0x0,};
 
-    Coding_Channel_Ctl afe_coding_ch_ctl{};
     quint8 conding_ch_number =0;
     quint8 drdy_pin=1;
 
     jsonDataHandle *resp_to_json;
+    sys_cmd_resp *afe_coding_ch_ctl;
 
 #ifdef _USE_ADC_ADS130E08_
     QSocketNotifier *drdy_notify;

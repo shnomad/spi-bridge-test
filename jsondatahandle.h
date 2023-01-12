@@ -10,6 +10,7 @@
 #include <QJsonValue>
 #include <QJsonArray>
 #include "common.h"
+#include "sys_cmd_resp.h"
 
 class jsonDataHandle : public QObject
 {
@@ -19,11 +20,11 @@ class jsonDataHandle : public QObject
 
 public:
     explicit jsonDataHandle(QObject *parent = nullptr);
-//    explicit jsonDataHandle(quint8, QObject *parent = nullptr);
     ~jsonDataHandle();
 
-    QString encode_resp(Coding_Channel_Ctl, quint16 *);
-    Coding_Channel_Ctl parse(QString);
+//  QString encode_resp(Coding_Channel_Ctl, quint16 *);
+    QString encode_resp(sys_cmd_resp *, quint16 *);
+    sys_cmd_resp *parse(QString);
 
     enum update_sel
     {
@@ -32,15 +33,18 @@ public:
     };
 
     bool Create(quint8);
+    sys_cmd_resp *check_config(sys_cmd_resp *);
+    sys_cmd_resp::resp GetConfig(sys_cmd_resp *);
 
     QMutex mutex;
 
-signals:
+signals:    
 
 public slots:
 
 private:
-    Coding_Channel_Ctl ch_ctl_cmd{};    
+//  Coding_Channel_Ctl ch_ctl_cmd{};
+    sys_cmd_resp *cmd_from_host_parsing;
 
     /*set&get config.json*/    
     QJsonDocument Open(const bool is_write = false);
@@ -61,8 +65,6 @@ private:
              {"CH_151", "CH_152", "CH_153", "CH_154", "CH_155", "CH_156", "CH_157", "CH_158", "CH_159", "CH_160", "CH_161", "CH_162", "CH_163", "CH_164", "CH_165"}, \
              {"CH_166", "CH_167", "CH_168", "CH_169", "CH_170", "CH_171", "CH_172", "CH_173", "CH_174", "CH_175", "CH_176", "CH_177", "CH_178", "CH_179", "CH_180"} \
     };
-
-    const QString total_channel_1d[180];
 
 };
 

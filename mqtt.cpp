@@ -3,9 +3,16 @@
 #include <QDebug>
 #include "mqtt.h"
 
-mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
+//mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
+mqtt::mqtt(sys_cmd_resp *channel_info,QObject *parent) : QObject(parent)
 {
-    client_id = "CH_" + QString("%1").arg(n_ch, 3, 10, QChar('0'));
+    cmd_from_host = new sys_cmd_resp;
+    cmd_from_host = channel_info;
+
+    client_id = QMetaEnum::fromType<sys_cmd_resp::channel>().valueToKey(cmd_from_host->m_ch);
+ // client_id = "CH_" + QString("%1").arg(n_ch, 3, 10, QChar('0'));
+
+    json_to_cmd = new jsonDataHandle;
 
     QString hostname ="10.42.0.69";
  // QString hostname ="192.168.137.1";
@@ -58,8 +65,17 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
                     + QLatin1Char('\n');
         qDebug()<<client_id<<":"<<content;
 
-        mqtt_coding_ch_ctl = json_to_cmd->parse(message);
+        cmd_from_host = json_to_cmd->parse(message);
 
+        if(cmd_from_host->m_cmd == sys_cmd_resp::CMD_CHECK_AFE_CONNECTED)
+        {
+            pub_status_topic();            
+        }
+        else
+        {
+            emit sig_cmd_to_afe(cmd_from_host);
+        }
+/*
         if(mqtt_coding_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_CHECK_AFE_CONNECTED)
         {
             pub_status_topic();
@@ -68,6 +84,7 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
         {
             emit sig_cmd_to_afe(mqtt_coding_ch_ctl);
         }
+*/
 
     });
 
@@ -81,7 +98,6 @@ mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
     updateLogStateChange();
 
     connect_broker_timer->start();
-
 }
 
 void mqtt::setClientPort(int p)

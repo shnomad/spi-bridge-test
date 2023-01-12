@@ -3,8 +3,11 @@
 #include <bits/stdc++.h>
 #include <algorithm>
 
-AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl m_ch_ctl, QObject *parent) : QObject(parent)
-{    
+AFEControl::AFEControl(QString hid_port_name, sys_cmd_resp *m_ch_ctl, QObject *parent) : QObject(parent)
+{        
+    afe_coding_ch_ctl = new sys_cmd_resp;
+    afe_coding_ch_ctl = m_ch_ctl;
+
     m_usb_spi = new pl23d3;
     m_dac = new dac8562;
 
@@ -46,12 +49,17 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl m_ch_ctl, QObje
 
     if(hid_fd < 0)
     {
+        quint16 arg[1];
+
         Log()<<"HID Device Open Fail";
+
+        afe_coding_ch_ctl->m_resp = sys_cmd_resp::RESP_AFE_READY_FAIL;
+        arg[0] = sys_cmd_resp::resp_afe_fail::AFE_HID_INIT_FAIL;
+
+        emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, arg));
+
         exit(0);
     }
-
-//  afe_coding_ch_ctl.m_ch = ch;
-    afe_coding_ch_ctl.m_ch = m_ch_ctl.m_ch;
 
     m_usb_spi->SPI_Master_Init(hid_fd);
 
@@ -87,12 +95,7 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl m_ch_ctl, QObje
     m_timer_adc->setSingleShot(true);
     m_timer_adc->setInterval(0);
 
-    QObject::connect(m_timer_adc, SIGNAL(timeout()), this, SLOT(adc_read()));
-
-    /* ADC data transmittion timer, after ADC capure & calculate complete it'll start */
-//  m_timer_adc_transmitt->setSingleShot(true);
-//  m_timer_adc_transmitt->setInterval(0);
-//  QObject::connect(m_timer_adc_transmitt, SIGNAL(timeout()), this, SLOT(adc_data_transmitt()));
+    QObject::connect(m_timer_adc, SIGNAL(timeout()), this, SLOT(adc_read()));    
 
     /* notice to websock thread "I'm Ready"*/
     m_timer_notice->setSingleShot(true);
@@ -100,9 +103,8 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl m_ch_ctl, QObje
 
     connect(m_timer_notice, &QTimer::timeout,[=]()
           {
-                afe_coding_ch_ctl.m_ch = static_cast<Coding_Channel_Ctl::channel>(conding_ch_number);
-                afe_coding_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_AFE_READY_SUCCESS;
-
+//              afe_coding_ch_ctl->m_ch = static_cast<sys_cmd_resp::channel>(conding_ch_number);
+                afe_coding_ch_ctl->m_resp = sys_cmd_resp::RESP_AFE_READY_SUCCESS;
 //              emit sig_resp_from_afe(afe_coding_ch_ctl);
           });
 
@@ -118,15 +120,16 @@ AFEControl::AFEControl(QString hid_port_name, Coding_Channel_Ctl m_ch_ctl, QObje
 
 #endif
 
-//  resp_to_json = new jsonDataHandle(static_cast<quint8>(afe_coding_ch_ctl.m_ch));
     resp_to_json = new jsonDataHandle;
 
     /*check DAC/ADC config.txt file*/
-
-    check_config(m_ch_ctl.board_number);
+//  resp_to_json->check_config(afe_coding_ch_ctl);
 
 //  adc_read_start();
 //  m_timer_notice->start();
+
+   /*AFE command processing*/
+
 }
 
 qint32 AFEControl::dac_init()
@@ -154,12 +157,12 @@ qint32 AFEControl::dac_out(AFEControl::DAC_CH ch, float value)
    if(ch == AFEControl::DAC_CH::CH_A)
    {
          result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_0, m_dac->writeA(value), 0x3);
-         afe_coding_ch_ctl.dac_value_a = value;
+         afe_coding_ch_ctl->dac_value_a_v = value;
    }
    else if(ch == AFEControl::DAC_CH::CH_B)
    {
          result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_0, m_dac->writeB(value), 0x3);
-         afe_coding_ch_ctl.dac_value_b = value;
+         afe_coding_ch_ctl->dac_value_b_v = value;
    }
    else
    {
@@ -177,12 +180,12 @@ qint32 AFEControl::dac_out(AFEControl::DAC_CH ch, quint16 dac_bit)
     if(ch == AFEControl::DAC_CH::CH_A)
     {
         result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_0, m_dac->writeA(dac_bit), 0x3);
-        afe_coding_ch_ctl.dac_value_a_r = dac_bit;
+        afe_coding_ch_ctl->dac_value_a_b = dac_bit;
     }
     else if(ch == AFEControl::DAC_CH::CH_B)
     {
         result = m_usb_spi->SPI_Single_Write(hid_fd, pl23d3::CS_0, m_dac->writeB(dac_bit), 0x3);
-        afe_coding_ch_ctl.dac_value_b_r = dac_bit;
+        afe_coding_ch_ctl->dac_value_b_b = dac_bit;
     }
 
     return result;
@@ -299,7 +302,6 @@ qint32 AFEControl::adc_read()
 
 void AFEControl::adc_read_ready()
 {
-#if 1
 
 #ifdef _USE_ADC_ADS130E08_
         ads130e08_rdry->gpio_poll(drdy_fd, 100);
@@ -324,135 +326,6 @@ void AFEControl::adc_read_ready()
 #endif
            adc_data_calculate(10, 600);              //total loop, capture count for every loop        
  //        adc_data_calculate(10, 1200);             //total loop, capture count for every loop
-
-#else
-    qint32  result;
-    quint16 adc_value = 0;
-    quint64 adc_average_1st=0, adc_average_2nd=0;    
-
-   if(total_count_loop < 10)
-    {
-
-       if(read_adc_count < 1200)
-       {
-             /* Read ADC data and store */
-             result = read(hid_fd, spi_read_buf, 64);
-
-            if(spi_read_buf[0] == 0xb3 && spi_read_buf[63] == 0x2)
-            {
-                adc_value |= spi_read_buf[1] << 8;
-                adc_value |= spi_read_buf[2];
-
-                adc_rawdata.append(adc_value);
-
-                read_adc_count++;
-            }
-
-    //      if(read_adc_count ==1 || read_adc_count == 1200)
-    //          Log()<<"["<< read_adc_count <<"]"<< " Read ADC Value :"<<  QString("%1").arg(adc_value, 0, 16);
-
-            adc_value = 0;
-
-            m_timer_adc->start();
-       }
-       else
-       {
-            m_notify_hid->setEnabled(false);            
-
-            /* ADC min. max. value check */
-            if(total_count_loop == 0)
-            {
-                adc_min = *min_element(adc_rawdata.begin(), adc_rawdata.end());
-                adc_max = *max_element(adc_rawdata.begin(), adc_rawdata.end());
-            }
-            else
-            {
-                quint16 tmp_min, tmp_max;
-
-                tmp_min = *min_element(adc_rawdata.begin(), adc_rawdata.end());
-                tmp_max = *max_element(adc_rawdata.begin(), adc_rawdata.end());
-
-                if(adc_min > tmp_min)
-                {
-                     adc_min = adc_min - tmp_min;
-                     tmp_min = adc_min + tmp_min;
-                     adc_min = tmp_min - adc_min;
-                }
-
-                if(adc_max < tmp_max)
-                {
-                    tmp_max = tmp_max - adc_max;
-                    adc_max = tmp_max + adc_max;
-                    tmp_max = adc_max - tmp_max;
-                }
-            }
-
-           /* 1. Calculate the average value of every 30 ADC data, it makes 40 ADC average data */
-
-           for(quint32 adc_cal_count =0; adc_cal_count<1200; adc_cal_count++)
-            {
-               adc_average_1st += adc_rawdata[adc_cal_count];
-
-               if(adc_cal_count && (adc_cal_count%30 == 29))
-               {
-                   adc_average.append(adc_average_1st/30);
-                   adc_average_1st =0;
-               }
-           }
-
-           /*  2. sorting the adc data & drop the  upper/lower 10 ADC data */
-              qSort(adc_average.begin(), adc_average.end());
-
-              adc_average.remove(30, 10);
-              adc_average.remove(0, 10);
-
-           /*  3. Calculate the average value of 20 ADC data */
-//           for(quint8 adc_cal_count=0; adc_cal_count<20; adc_cal_count++)
-              for(quint8 adc_cal_count=0; adc_cal_count<adc_average.size(); adc_cal_count++)
-              {
-                  adc_average_2nd += adc_average[adc_cal_count];
-              }
-
-              adc_average_2nd /= 20;
-
-             //Log() <<"Averfage of ADC Value :"<<  QString("%1").arg(adc_average_2nd, 0, 16);
-
-              adc_data_final = static_cast<quint16>(adc_average_2nd);
-              read_adc_count = 0;
-
-           /* 4. raw data & average data vector clear */
-              adc_rawdata.clear();
-              adc_average.clear();
-
-              Log() <<"Final ADC Value :"<<  QString("%1").arg(adc_data_final, 0, 16);
-
-              adc_data_resp[total_count_loop] = adc_data_final;
-
-              adc_data_final = 0;
-
-              if(total_count_loop < 9)
-              {
-                  total_count_loop++;
-
-                  adc_read_start();
-              }
-              else
-              {
-                  adc_data_resp[10] = adc_max;
-                  adc_data_resp[11] = adc_min;
-
-                  afe_coding_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE;
-                  emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, dac_value, adc_data_resp));
-
-                  memset((void *)adc_data_resp, 0x0, sizeof(adc_data_resp));
-
-                  total_count_loop = 0;
-              }
-       }
-    }
-
-#endif
-
 }
 
 void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
@@ -598,9 +471,7 @@ void AFEControl::adc_data_calculate(quint32 loop_count, quint32 capture_count)
                   adc_data_resp[10] = adc_max;
                   adc_data_resp[11] = adc_min;
 
-                  afe_coding_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_MEASURED_ADC_VALUE;
-//                emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, dac_value, adc_data_resp));
-
+                  afe_coding_ch_ctl->m_resp = sys_cmd_resp::RESP_MEASURED_ADC_VALUE;
 
                   emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, adc_data_resp));
 
@@ -629,145 +500,121 @@ void AFEControl::adc_read_stop()
 
 }
 
-void AFEControl::cmd_from_TcpSocket(Coding_Channel_Ctl m_ch_ctl)
+void AFEControl::cmd_from_TcpSocket(sys_cmd_resp *cmd_from_host)
 {
     qint32 result;
     quint16 *arg1, *arg2 = nullptr;
 
-        switch(m_ch_ctl.m_cmd)
-        {
-           case  Coding_Channel_Ctl::CMD_AFE_READY:
+    switch(cmd_from_host->m_cmd)
+    {
+        case sys_cmd_resp::CMD_AFE_READY:
 
-            break;
+            resp_to_json->mutex.lock();
 
-            case Coding_Channel_Ctl::CMD_START_MEASURE:
+                cmd_from_host = resp_to_json->check_config(cmd_from_host);
 
-                 adc_read_start();
-//               arg1 = (quint16 *)&dac_value;
-                 m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_START_MEASURE_SUCCESS;
+            resp_to_json->mutex.unlock();
 
-            break;
+        break;
 
-            case Coding_Channel_Ctl::CMD_STOP_MEASURE:
+        case sys_cmd_resp::CMD_START_MEASURE:
 
-                 adc_read_stop();
-                 m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_STOP_MEASURE_SUCCESS;
+            adc_read_start();
+            cmd_from_host->m_resp = sys_cmd_resp::RESP_START_MEASURE_SUCCESS;
 
-            break;
+        break;
 
-            case Coding_Channel_Ctl::CMD_DAC_OUT_WORK_VOLT:
+        case sys_cmd_resp::CMD_STOP_MEASURE:
 
-                dac_value[0] = static_cast<quint16>(m_ch_ctl.dac_value_a);                
+            adc_read_stop();
+            cmd_from_host->m_resp = sys_cmd_resp::RESP_STOP_MEASURE_SUCCESS;
 
-                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(m_ch_ctl.dac_value_a));
+        break;
 
-                if(result >0)
-                {                    
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
-                }
-                else
-                {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
-                }
+        case sys_cmd_resp::CMD_DAC_OUT_WORK_VOLT:
+            {
+//               dac_value[0] = static_cast<quint16>(cmd_from_host->dac_value_a_v);
 
-             break;
-
-            case Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER_VOLT:
-
-                dac_value[1] = m_ch_ctl.dac_value_b;
-
-                result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<float>(m_ch_ctl.dac_value_b));
+                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(cmd_from_host->dac_value_a_v));
 
                 if(result >0)
                 {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_SUCCESS;
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
                 {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_FAIL;
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_WORK_FAIL;
                 }
+            }
+        break;
 
-                break;
+        case sys_cmd_resp::CMD_DAC_OUT_COUNTER_VOLT:
+            {
+//              dac_value[1] = static_cast<quint16>(cmd_from_host->dac_value_b_v);
 
-             case  Coding_Channel_Ctl::CMD_DAC_OUT_WORK_BIT:
-
-                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<quint16>(m_ch_ctl.dac_value_a_r));
+                result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<float>(cmd_from_host->dac_value_b_v));
 
                 if(result >0)
                 {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_COUNTER_SUCCESS;
                 }
                 else
                 {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_FAIL;
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_COUNTER_FAIL;
                 }
+            }
+        break;
 
-                break;
-
-             case  Coding_Channel_Ctl::CMD_DAC_OUT_COUNTER_BIT:
-
-                result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<quint16>(m_ch_ctl.dac_value_b_r));
+        case sys_cmd_resp::CMD_DAC_OUT_WORK_BIT:
+            {
+                result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<quint16>(cmd_from_host->dac_value_a_b));
 
                 if(result >0)
                 {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_WORK_SUCCESS;
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_WORK_SUCCESS;
                 }
                 else
                 {
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_DAC_OUT_COUNTER_FAIL;
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_WORK_FAIL;
                 }
+            }
+        break;
 
-             break;
+        case sys_cmd_resp::CMD_DAC_OUT_COUNTER_BIT:
+            {
+                result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<quint16>(cmd_from_host->dac_value_b_b));
 
-             case  Coding_Channel_Ctl::CMD_DAC_VOLT_CHECK:
+                if(result >0)
+                {
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_COUNTER_SUCCESS;
+                }
+                else
+                {
+                    cmd_from_host->m_resp = sys_cmd_resp::RESP_DAC_OUT_COUNTER_FAIL;
+                }
+            }
+        break;
 
-             break;
+        case sys_cmd_resp::CMD_DAC_VOLT_CHECK:
 
-             case  Coding_Channel_Ctl::CMD_DAC_BIT_CHECK:
+        break;
 
-             break;
+        case sys_cmd_resp::CMD_DAC_BIT_CHECK:
 
-            case Coding_Channel_Ctl::CMD_FW_CHECK:
+        break;
 
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_FW_CHECK_SUCCESS;
-
-                break;
-
-            case Coding_Channel_Ctl::CMD_BATTERY_CHECK:
-
-                    m_ch_ctl.m_resp = Coding_Channel_Ctl::RESP_BATTERY_CHECK_SUCCESS;
-
-                break;
-
-            case Coding_Channel_Ctl::CMD_UNKNOWN:
-
-                break;
-
-            default:
-
-                break;
-        }    
-
-      m_ch_ctl.m_ch = afe_coding_ch_ctl.m_ch;
-//    emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg1, arg2));
-      resp_to_json->mutex.lock();
-           emit sig_resp_from_afe(resp_to_json->encode_resp(m_ch_ctl, arg2));
-      resp_to_json->mutex.unlock();
-}
-
-void AFEControl::check_config(quint8 board_number)
-{
-    QFile file;
-
-    file.setFileName("/home/user/config.txt");
+        case sys_cmd_resp::CMD_UNKNOWN:
+        break;
+    }
 
     resp_to_json->mutex.lock();
 
-    if(!file.exists())
-        resp_to_json->Create(board_number);
+        emit sig_resp_from_afe(resp_to_json->encode_resp(cmd_from_host, arg2));
 
     resp_to_json->mutex.unlock();
+
 }
+
 
 AFEControl::~AFEControl()
 {

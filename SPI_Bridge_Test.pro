@@ -30,7 +30,8 @@ SOURCES += \
         devices/dac/dac8562.cpp \
         devices/adc/ads8866.cpp \
         devices/adc/ads1120.cpp \
-        mqtt.cpp
+        mqtt.cpp \
+    sys_cmd_resp.cpp
  #      tcpsocketrw.cpp
 
 HEADERS += \
@@ -48,7 +49,8 @@ HEADERS += \
         devices/dac/dac8562.h \
         devices/adc/ads8866.h \
         devices/adc/ads1120.h \
-        mqtt.h
+        mqtt.h \
+    sys_cmd_resp.h
 #       tcpsocketrw.h
 
 INCLUDEPATH +=/opt/debian_imx8mm-var-dart/qt5/sysroot/usr/local/include \

@@ -3,11 +3,12 @@
 
 coding_channel::coding_channel(quint8 thread_seq, QObject *parent) : QObject(parent)
 {
-    qRegisterMetaType<Coding_Channel_Ctl>();
+    afe_channel_info = new sys_cmd_resp;   
+
 
     QList<QString> hid_port_name = {"usb-spi-1","usb-spi-2","usb-spi-3","usb-spi-4","usb-spi-5", \
-                                    "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
-                                    "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
+                            "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
+                            "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
 
     set_afe_number();
 
@@ -16,19 +17,16 @@ coding_channel::coding_channel(quint8 thread_seq, QObject *parent) : QObject(par
 
     channel_number = get_afe_number(Board_Number, thread_seq);
 
-    m_coding_ch_ctl.m_ch = static_cast<Coding_Channel_Ctl::channel>(channel_number);
-    m_coding_ch_ctl.board_number = Board_Number;
+    afe_channel_info->m_ch = static_cast<sys_cmd_resp::channel>(channel_number);
+    afe_channel_info->board_number = Board_Number;
 
-    m_ClientMqtt = new mqtt(m_coding_ch_ctl.m_ch);
+    m_client = new mqtt(afe_channel_info);
 
    /* Dummy Channel Test */
-    if(thread_seq == 0)
-    {
-      m_afe_control = new AFEControl(hid_port_name.at(thread_seq), m_coding_ch_ctl);
+    m_afe_control = new AFEControl(hid_port_name.at(thread_seq), afe_channel_info);
 
-      QObject::connect(m_ClientMqtt, SIGNAL(sig_cmd_to_afe(Coding_Channel_Ctl)), m_afe_control, SLOT(cmd_from_TcpSocket(Coding_Channel_Ctl)));
-      QObject::connect(m_afe_control, SIGNAL(sig_resp_from_afe(QString)), m_ClientMqtt, SLOT(pub_response_topic(QString)));
-    }
+    connect(m_client, SIGNAL(sig_cmd_to_afe(sys_cmd_resp*)), m_afe_control, SLOT(cmd_from_TcpSocket(sys_cmd_resp*)));
+    connect(m_afe_control, SIGNAL(sig_resp_from_afe(QString)), m_client, SLOT(pub_response_topic(QString)));
 }
 
 void coding_channel::set_afe_number()
