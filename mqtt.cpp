@@ -3,7 +3,6 @@
 #include <QDebug>
 #include "mqtt.h"
 
-//mqtt::mqtt(Coding_Channel_Ctl::channel n_ch,QObject *parent) : QObject(parent)
 mqtt::mqtt(sys_cmd_resp *channel_info,QObject *parent) : QObject(parent)
 {
     cmd_from_host = new sys_cmd_resp;
@@ -39,7 +38,7 @@ mqtt::mqtt(sys_cmd_resp *channel_info,QObject *parent) : QObject(parent)
     pub_topic_status_timer->setInterval(100);
 
     pub_topic_resp_timer = new QTimer;
-    pub_topic_resp_timer->setSingleShot(true);
+    pub_topic_resp_timer->setSingleShot(true);    
     pub_topic_resp_timer->setInterval(300);
 
     sub_topic_cmd_timer = new QTimer;
@@ -69,23 +68,12 @@ mqtt::mqtt(sys_cmd_resp *channel_info,QObject *parent) : QObject(parent)
 
         if(cmd_from_host->m_cmd == sys_cmd_resp::CMD_CHECK_AFE_CONNECTED)
         {
-            pub_status_topic();            
+            pub_status_topic();
         }
         else
         {
             emit sig_cmd_to_afe(cmd_from_host);
         }
-/*
-        if(mqtt_coding_ch_ctl.m_cmd == Coding_Channel_Ctl::CMD_CHECK_AFE_CONNECTED)
-        {
-            pub_status_topic();
-        }
-        else
-        {
-            emit sig_cmd_to_afe(mqtt_coding_ch_ctl);
-        }
-*/
-
     });
 
     connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
@@ -208,7 +196,7 @@ bool mqtt::sub_host_cmd_topic()
     {
         qDebug()<<client_id<<" :sub_host_cmd_topic success";
 
-        pub_topic_resp_timer->start();
+        emit sig_launch_afe();
 
         return true;
     }

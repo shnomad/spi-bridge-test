@@ -38,7 +38,7 @@ public:
 
      cmd m_cmd = cmd::CMD_UNKNOWN;
      resp m_resp = resp::RESP_UNKNOWN;
-     quint16 resp_arg[4];
+     double resp_arg[6];
 
      quint8 board_number = 0x0;
      float dac_value_a_v, dac_value_b_v;

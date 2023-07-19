@@ -47,12 +47,13 @@ public:
     };
 
         explicit AFEControl(QString, sys_cmd_resp*, QObject *parent = nullptr);
+//      explicit AFEControl(QObject *parent = nullptr);
+
         ~AFEControl();    
 
 signals:
 
 Q_SIGNALS:
-    //void sig_cmd_to_afe(Coding_Channel_Ctl);
     void sig_resp_from_afe(QString);
     void sig_read_adc_manual();
     void sig_stop_read_adc_manual();
@@ -106,13 +107,13 @@ private:
     volatile quint32 read_adc_count =0;
     volatile quint16 adc_data_final = 0;
     quint16 adc_data_resp[12]= {0x0,};
-//  quint16 dac_value[2]={0x0,};
 
     quint8 conding_ch_number =0;
     quint8 drdy_pin=1;
 
     jsonDataHandle *resp_to_json;
     sys_cmd_resp *afe_coding_ch_ctl;
+    mqtt *send_error;
 
 #ifdef _USE_ADC_ADS130E08_
     QSocketNotifier *drdy_notify;

@@ -19,6 +19,8 @@ signals:
     void sig_read_from_socket(const QByteArray &data);
     void sig_doconnect();
     void sig_cmd_to_afe(sys_cmd_resp *);
+    void sig_launch_afe();
+    void sig_afe_error(QString);
 
 public slots:
     void setClientPort(int p);
@@ -34,8 +36,8 @@ private slots:
     bool Publish(QString, QString, quint8, bool);
     bool Subscribe(QString);
 
-    bool pub_status_topic();
     bool pub_response_topic(QString);
+    bool pub_status_topic();
     bool sub_host_cmd_topic();
 
 private:

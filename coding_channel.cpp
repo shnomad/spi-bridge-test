@@ -3,12 +3,11 @@
 
 coding_channel::coding_channel(quint8 thread_seq, QObject *parent) : QObject(parent)
 {
-    afe_channel_info = new sys_cmd_resp;   
+    afe_channel_info = new sys_cmd_resp;
 
-
-    QList<QString> hid_port_name = {"usb-spi-1","usb-spi-2","usb-spi-3","usb-spi-4","usb-spi-5", \
-                            "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
-                            "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
+    QList<QString>  hid_port_name = {"usb-spi-1","usb-spi-2","usb-spi-3","usb-spi-4","usb-spi-5", \
+                    "usb-spi-6","usb-spi-7","usb-spi-8","usb-spi-9","usb-spi-10", \
+                    "usb-spi-11","usb-spi-12","usb-spi-13","usb-spi-14","usb-spi-15"};
 
     set_afe_number();
 
@@ -22,7 +21,7 @@ coding_channel::coding_channel(quint8 thread_seq, QObject *parent) : QObject(par
 
     m_client = new mqtt(afe_channel_info);
 
-   /* Dummy Channel Test */
+   /* AFE Start*/
     m_afe_control = new AFEControl(hid_port_name.at(thread_seq), afe_channel_info);
 
     connect(m_client, SIGNAL(sig_cmd_to_afe(sys_cmd_resp*)), m_afe_control, SLOT(cmd_from_TcpSocket(sys_cmd_resp*)));

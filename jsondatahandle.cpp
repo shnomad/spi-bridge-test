@@ -83,7 +83,6 @@ QString jsonDataHandle::encode_resp(sys_cmd_resp *resp_to_host, quint16 *arg2)
                         QJsonDocument jsonDoc_from_config = Open(false);
                         QJsonObject mainObject_from_config = jsonDoc_from_config.object();
                         QJsonObject ch_param_from_config = mainObject_from_config[QMetaEnum::fromType<sys_cmd_resp::channel>().valueToKey(resp_to_host->m_ch)].toObject();
-//                      QJsonObject ch_param_from_config = mainObject_from_config[total_channel_1d[(ch_ctl_resp.m_ch-1)]].toObject();
                         QJsonObject cal_val_from_config = ch_param_from_config["CAL"].toObject();
                         QJsonObject dac_val_from_config = ch_param_from_config["DAC"].toObject();
 
@@ -124,10 +123,12 @@ QString jsonDataHandle::encode_resp(sys_cmd_resp *resp_to_host, quint16 *arg2)
             {
                  QJsonArray resp_arg;
 
-                 resp_arg.push_back(resp_to_host->resp_arg[0]);
-                 resp_arg.push_back(resp_to_host->resp_arg[1]);
-                 resp_arg.push_back(resp_to_host->resp_arg[2]);
-                 resp_arg.push_back(resp_to_host->resp_arg[3]);
+                 resp_arg.push_back(static_cast<quint16>(resp_to_host->resp_arg[0]));
+                 resp_arg.push_back(static_cast<quint16>(resp_to_host->resp_arg[1]));
+                 resp_arg.push_back(static_cast<quint16>(resp_to_host->resp_arg[2]));
+                 resp_arg.push_back(static_cast<quint16>(resp_to_host->resp_arg[3]));
+                 resp_arg.push_back(resp_to_host->resp_arg[4]);
+                 resp_arg.push_back(resp_to_host->resp_arg[5]);
 
                  mainObject.insert("response_detail", resp_arg);
             }
@@ -386,11 +387,18 @@ sys_cmd_resp *jsonDataHandle::check_config(sys_cmd_resp *afe_info)
         QJsonObject mainObject = jsonDoc_temp.object();
         QJsonObject ch_tmp = mainObject[QMetaEnum::fromType<sys_cmd_resp::channel>().valueToKey(afe_info->m_ch)].toObject();
         QJsonObject dac_tmp = ch_tmp["DAC"].toObject();
+        QJsonObject cal_tmp = ch_tmp["Calibrarion"].toObject();
 
         QJsonValue dac_work_volt = dac_tmp.value("Work[mV]");
         QJsonValue dac_counter_volt = dac_tmp.value("Counter[mV]");
         QJsonValue dac_work_bit = dac_tmp.value("Work[bit]");
         QJsonValue dac_counter_bit = dac_tmp.value("Counter[bit]");
+
+        QJsonValue cal_slope = cal_tmp.value("slope");
+        QJsonValue cal_intercept = cal_tmp.value("intercept");
+
+        Log()<<cal_slope;
+        Log()<<cal_intercept;
 
         if((dac_work_volt.toInt() <=0)|| (dac_counter_volt.toInt() <=0) || (dac_work_bit.toInt() <=0) || (dac_counter_bit.toInt() <=0))
         {
@@ -409,6 +417,9 @@ sys_cmd_resp *jsonDataHandle::check_config(sys_cmd_resp *afe_info)
             cmd_from_host_parsing->resp_arg[2] = static_cast<quint16>(dac_work_bit.toInt());
             cmd_from_host_parsing->resp_arg[3] = static_cast<quint16>(dac_counter_bit.toInt());
         }
+
+       cmd_from_host_parsing->resp_arg[4] = cal_slope.toDouble();
+       cmd_from_host_parsing->resp_arg[5] = cal_intercept.toDouble();
     }
 
     cmd_from_host_parsing->m_resp = sys_cmd_resp::resp::RESP_AFE_READY_SUCCESS;

@@ -4,7 +4,9 @@
 #include <algorithm>
 
 AFEControl::AFEControl(QString hid_port_name, sys_cmd_resp *m_ch_ctl, QObject *parent) : QObject(parent)
-{        
+{
+    resp_to_json = new jsonDataHandle;
+
     afe_coding_ch_ctl = new sys_cmd_resp;
     afe_coding_ch_ctl = m_ch_ctl;
 
@@ -47,27 +49,20 @@ AFEControl::AFEControl(QString hid_port_name, sys_cmd_resp *m_ch_ctl, QObject *p
 
     hid_fd = m_usb_spi->SPI_Open(hidpath.toStdString().c_str());
 
-    if(hid_fd < 0)
+    if(m_ch_ctl->m_ch == sys_cmd_resp::CH_001)
     {
-        quint16 arg[1];
 
-        Log()<<"HID Device Open Fail";
+        if(hid_fd < 0)
+        {
+            Log()<<m_ch_ctl->m_ch <<" :HID Device Open Fail!!!";
+            exit(0);
+        }
 
-        afe_coding_ch_ctl->m_resp = sys_cmd_resp::RESP_AFE_READY_FAIL;
-        arg[0] = sys_cmd_resp::resp_afe_fail::AFE_HID_INIT_FAIL;
-
-        emit sig_resp_from_afe(resp_to_json->encode_resp(afe_coding_ch_ctl, arg));
-
-        exit(0);
+        m_usb_spi->SPI_Master_Init(hid_fd);
     }
-
-    m_usb_spi->SPI_Master_Init(hid_fd);
 
     dac_init();
     adc_init();
-
-//  dac_out(AFEControl::DAC_CH::CH_A, 500);
-//  dac_out(AFEControl::DAC_CH::CH_B, 500);
 
 #ifdef _USE_ADC_ADS8866_
     /* Socket notifier for SPI read interrupt*/
@@ -119,17 +114,6 @@ AFEControl::AFEControl(QString hid_port_name, sys_cmd_resp *m_ch_ctl, QObject *p
     m_timer_read_adc_delay->setInterval(1);
 
 #endif
-
-    resp_to_json = new jsonDataHandle;
-
-    /*check DAC/ADC config.txt file*/
-//  resp_to_json->check_config(afe_coding_ch_ctl);
-
-//  adc_read_start();
-//  m_timer_notice->start();
-
-   /*AFE command processing*/
-
 }
 
 qint32 AFEControl::dac_init()
@@ -510,14 +494,39 @@ void AFEControl::cmd_from_TcpSocket(sys_cmd_resp *cmd_from_host)
         case sys_cmd_resp::CMD_AFE_READY:
 
             resp_to_json->mutex.lock();
-
                 cmd_from_host = resp_to_json->check_config(cmd_from_host);
-
             resp_to_json->mutex.unlock();
 
         break;
 
         case sys_cmd_resp::CMD_START_MEASURE:
+
+            resp_to_json->mutex.lock();
+                cmd_from_host = resp_to_json->check_config(cmd_from_host);
+            resp_to_json->mutex.unlock();
+
+            if(cmd_from_host->m_resp == sys_cmd_resp::RESP_AFE_READY_FAIL)
+                break;
+
+            /*DAC out WOKR_BIT*/
+            result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<quint16>(cmd_from_host->resp_arg[2]));
+
+            if(result<=0)
+            {
+                cmd_from_host->m_resp = sys_cmd_resp::RESP_START_MEASURE_FAIL;
+                cmd_from_host->resp_arg[0] = sys_cmd_resp::RESP_DAC_OUT_WORK_FAIL;
+                break;
+            }
+
+            /*DAC out COUNTER_BIT*/
+            result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<quint16>(cmd_from_host->resp_arg[3]));
+
+            if(result<=0)
+            {
+                cmd_from_host->m_resp = sys_cmd_resp::RESP_START_MEASURE_FAIL;
+                cmd_from_host->resp_arg[0] = sys_cmd_resp::RESP_DAC_OUT_COUNTER_FAIL;
+                break;
+            }
 
             adc_read_start();
             cmd_from_host->m_resp = sys_cmd_resp::RESP_START_MEASURE_SUCCESS;
@@ -533,7 +542,6 @@ void AFEControl::cmd_from_TcpSocket(sys_cmd_resp *cmd_from_host)
 
         case sys_cmd_resp::CMD_DAC_OUT_WORK_VOLT:
             {
-//               dac_value[0] = static_cast<quint16>(cmd_from_host->dac_value_a_v);
 
                 result = dac_out(AFEControl::DAC_CH::CH_A, static_cast<float>(cmd_from_host->dac_value_a_v));
 
@@ -550,7 +558,6 @@ void AFEControl::cmd_from_TcpSocket(sys_cmd_resp *cmd_from_host)
 
         case sys_cmd_resp::CMD_DAC_OUT_COUNTER_VOLT:
             {
-//              dac_value[1] = static_cast<quint16>(cmd_from_host->dac_value_b_v);
 
                 result = dac_out(AFEControl::DAC_CH::CH_B, static_cast<float>(cmd_from_host->dac_value_b_v));
 
@@ -614,7 +621,6 @@ void AFEControl::cmd_from_TcpSocket(sys_cmd_resp *cmd_from_host)
     resp_to_json->mutex.unlock();
 
 }
-
 
 AFEControl::~AFEControl()
 {

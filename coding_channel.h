@@ -5,7 +5,7 @@
 #include <QVector>
 #include "common.h"
 #include "afe_control.h"
-#include "mqtt.h"
+//#include "mqtt.h"
 
 class coding_channel : public QObject
 {
@@ -21,7 +21,6 @@ signals:
 public slots:
 
 private:
-
     AFEControl *m_afe_control;
     mqtt *m_client;
     QVector <int *>afe_channel;
